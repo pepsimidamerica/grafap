@@ -2,8 +2,10 @@
 This module contains functions to interact with Microsoft Graph API
 """
 
+import json
 import os
 from datetime import datetime, timedelta
+from pprint import pprint
 
 import requests
 
@@ -90,9 +92,81 @@ class Decorators:
 
 
 @Decorators.refresh_token
+def get_sp_sites() -> dict:
+    """
+    Gets all site data in a given tenant
+    """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    def recurs_get(url, headers):
+        """
+        Recursive function to handle pagination
+        """
+        response = requests.get(url, headers=headers, timeout=30)
+
+        if response.status_code != 200:
+            print("Error, could not get sharepoint site data: ", response.content)
+            raise Exception(
+                "Error, could not get sharepoint site data: " + str(response.content)
+            )
+
+        data = response.json()
+
+        # Check for the next page
+        if "@odata.nextLink" in data:
+            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        else:
+            return data["value"]
+
+    result = recurs_get(
+        os.environ["GRAPH_BASE_URL"],
+        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+    )
+    return result
+
+
+@Decorators.refresh_token
+def get_sp_lists(siteid: str) -> dict:
+    """
+    Gets all lists in a given site
+    """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    def recurs_get(url, headers):
+        """
+        Recursive function to handle pagination
+        """
+        response = requests.get(url, headers=headers, timeout=30)
+
+        if response.status_code != 200:
+            print("Error, could not get sharepoint list data: ", response.content)
+            raise Exception(
+                "Error, could not get sharepoint list data: " + str(response.content)
+            )
+
+        data = response.json()
+
+        # Check for the next page
+        if "@odata.nextLink" in data:
+            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        else:
+            return data["value"]
+
+    result = recurs_get(
+        os.environ["GRAPH_BASE_URL"] + siteid + "/lists",
+        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+    )
+
+    return result
+
+
+@Decorators.refresh_token
 def get_sp_list_items(siteid: str, listid: str) -> dict:
     """
     Gets field data from a sharepoint list
+    TODO: Add support for filtering
     """
 
     if "GRAPH_BASE_URL" not in os.environ:
@@ -178,3 +252,39 @@ def update_sp_item(siteid: str, listid: str, item_id: str, field_data: dict[str,
     except Exception as e:
         print("Error, could not update item in sharepoint: ", e)
         raise Exception("Error, could not update item in sharepoint: " + str(e))
+
+
+if __name__ == "__main__":
+    """
+    Testing
+    """
+    # Import JSON config file
+    try:
+        with open("config.json") as json_file:
+            config = json.load(json_file)
+    except Exception as e:
+        print("Error, could not open config file: ", e)
+        exit(1)
+    os.environ["GRAPH_BASE_URL"] = config["graph_base_url"]
+    os.environ["GRAPH_LOGIN_BASE_URL"] = config["graph_login_base_url"]
+    os.environ["GRAPH_CLIENT_ID"] = config["graph_client_id"]
+    os.environ["GRAPH_CLIENT_SECRET"] = config["graph_client_secret"]
+    os.environ["GRAPH_TENANT_ID"] = config["graph_tenant_id"]
+    os.environ["GRAPH_GRANT_TYPE"] = config["graph_grant_type"]
+    os.environ["GRAPH_SCOPES"] = config["graph_scopes"]
+
+    # site_data = get_sp_sites()
+    # for site in site_data:
+    #     if "name" in site:
+    #         print(site["id"])
+    #         print(site["name"])
+    #         print()
+
+    # pprint(site_data)
+    # lists = get_sp_lists("")
+    # for list in lists:
+    #     if "name" in list:
+    #         print(list["id"])
+    #         print(list["name"])
+    #         print()
+    pass
