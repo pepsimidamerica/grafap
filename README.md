@@ -1,2 +1,3 @@
-# sharrap
- Python package for interacting with SharePoint (primarily lists) via HTTP requests. Creating new items, querying lists, etc.
+# grafap
+
+grafap (graph-wrap) is a Python package for interacting with the Microsoft Graph API, primarily sharepoint lists. Creating new items, querying lists, etc.
