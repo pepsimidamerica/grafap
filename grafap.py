@@ -6,6 +6,7 @@ import json
 import os
 from datetime import datetime, timedelta
 from pprint import pprint
+from urllib import response
 
 import requests
 
@@ -141,16 +142,17 @@ class Decorators:
         response = requests.post(
             os.environ["SP_LOGIN_BASE_URL"]
             + os.environ["SP_TENANT_ID"]
-            + "/oauth2/v2.0/token",
+            + "/oauth2/token",
             headers=headers,
             data={
                 "client_id": os.environ["SP_CLIENT_ID"],
                 "client_secret": os.environ["SP_CLIENT_SECRET"],
-                "grant_type": "client_credentials",
+                "grant_type": os.environ["SP_GRANT_TYPE"],
                 "resource": os.environ["SP_SITE"],
             },
             timeout=30,
         )
+
         try:
             os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
         except Exception as e:
@@ -159,7 +161,7 @@ class Decorators:
             raise Exception("Error, could not set OS env bearer token: " + str(e))
         try:
             expires_at = datetime.now() + timedelta(
-                seconds=response.json()["expires_in"]
+                seconds=float(response.json()["expires_in"])
             )
             os.environ["SP_BEARER_TOKEN_EXPIRES_AT"] = expires_at.strftime(
                 "%m/%d/%Y %H:%M:%S"
@@ -167,6 +169,8 @@ class Decorators:
         except Exception as e:
             print("Error, could not set os env expires at: ", e)
             raise Exception("Error, could not set os env expires at: " + str(e))
+
+        print(os.environ["SP_BEARER_TOKEN"])
 
 
 @Decorators.refresh_graph_token
@@ -339,6 +343,28 @@ def update_sp_item(siteid: str, listid: str, item_id: str, field_data: dict[str,
         raise Exception("Error, could not update item in sharepoint: " + str(e))
 
 
+@Decorators.refresh_sp_token
+def get_site_user_by_id(site_url: str, user_id: str) -> dict:
+    """
+    Gets a sharepoint site user by the lookup id
+    """
+    headers = {
+        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+        "Accept": "application/json;odata=verbose",
+    }
+
+    url = f"{site_url}/_api/web/siteusers/getbyid({user_id})"
+
+    response = requests.get(url, headers=headers, timeout=30)
+
+    if response.status_code != 200:
+        print("Status Code: ", response.status_code)
+        print("Error, could not get site user data: ", response.content)
+        raise Exception("Error, could not get site user data: " + str(response.content))
+
+    return response.json()
+
+
 if __name__ == "__main__":
     """
     Testing
@@ -357,19 +383,13 @@ if __name__ == "__main__":
     os.environ["GRAPH_TENANT_ID"] = config["graph_tenant_id"]
     os.environ["GRAPH_GRANT_TYPE"] = config["graph_grant_type"]
     os.environ["GRAPH_SCOPES"] = config["graph_scopes"]
+    os.environ["SP_LOGIN_BASE_URL"] = config["graph_login_base_url"]
+    os.environ["SP_CLIENT_ID"] = config["graph_client_id"]
+    os.environ["SP_CLIENT_SECRET"] = config["graph_client_secret"]
+    os.environ["SP_TENANT_ID"] = config["graph_tenant_id"]
+    os.environ["SP_GRANT_TYPE"] = config["graph_grant_type"]
+    os.environ["SP_SITE"] = config["sp_site"]
 
-    # site_data = get_sp_sites()
-    # for site in site_data:
-    #     if "name" in site:
-    #         print(site["id"])
-    #         print(site["name"])
-    #         print()
-
-    # pprint(site_data)
-    # lists = get_sp_lists("")
-    # for list in lists:
-    #     if "name" in list:
-    #         print(list["id"])
-    #         print(list["name"])
-    #         print()
     pass
+
+    get_site_user_by_id("blah", "469")
