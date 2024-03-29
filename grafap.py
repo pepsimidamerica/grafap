@@ -174,6 +174,40 @@ class Decorators:
 
 
 @Decorators.refresh_graph_token
+def get_users() -> dict:
+    """
+    Gets all users in a given tenant
+    """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    def recurs_get(url, headers):
+        """
+        Recursive function to handle pagination
+        """
+        response = requests.get(url, headers=headers, timeout=30)
+
+        if response.status_code != 200:
+            print("Error, could not get user data: ", response.content)
+            raise Exception("Error, could not get user data: " + str(response.content))
+
+        data = response.json()
+
+        # Check for the next page
+        if "@odata.nextLink" in data:
+            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        else:
+            return data["value"]
+
+    result = recurs_get(
+        "https://graph.microsoft.com/v1.0/" + "users",
+        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+    )
+
+    return result
+
+
+@Decorators.refresh_graph_token
 def get_sp_sites() -> dict:
     """
     Gets all site data in a given tenant
@@ -390,6 +424,10 @@ if __name__ == "__main__":
     os.environ["SP_GRANT_TYPE"] = config["graph_grant_type"]
     os.environ["SP_SITE"] = config["sp_site"]
 
-    pass
+    users = get_users()
 
-    get_site_user_by_id("blah", "469")
+    # json.loads(json.dumps(users))
+
+    print(
+        next((item for item in users if item["displayName"] == "Jordan Maynor"), None)
+    )
