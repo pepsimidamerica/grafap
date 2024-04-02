@@ -243,7 +243,7 @@ def get_sp_sites() -> dict:
 
 
 @Decorators.refresh_graph_token
-def get_sp_lists(siteid: str) -> dict:
+def get_sp_lists(site_id: str) -> dict:
     """
     Gets all lists in a given site
     """
@@ -271,7 +271,7 @@ def get_sp_lists(siteid: str) -> dict:
             return data["value"]
 
     result = recurs_get(
-        os.environ["GRAPH_BASE_URL"] + siteid + "/lists",
+        os.environ["GRAPH_BASE_URL"] + site_id + "/lists",
         headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
     )
 
@@ -279,7 +279,7 @@ def get_sp_lists(siteid: str) -> dict:
 
 
 @Decorators.refresh_graph_token
-def get_sp_list_items(siteid: str, listid: str, filter_query: str = None) -> dict:
+def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> dict:
     """
     Gets field data from a sharepoint list
     filter_query is an optional OData filter query
@@ -310,9 +310,9 @@ def get_sp_list_items(siteid: str, listid: str, filter_query: str = None) -> dic
 
     url = (
         os.environ["GRAPH_BASE_URL"]
-        + siteid
+        + site_id
         + "/lists/"
-        + listid
+        + list_id
         + "/items?expand=fields"
     )
 
@@ -328,13 +328,13 @@ def get_sp_list_items(siteid: str, listid: str, filter_query: str = None) -> dic
 
 
 @Decorators.refresh_graph_token
-def create_sp_item(siteid: str, listid: str, field_data: dict):
+def create_sp_item(site_id: str, list_id: str, field_data: dict):
     """
     Create a new item in SharePoint
     """
     try:
         response = requests.post(
-            os.environ["GRAPH_BASE_URL"] + siteid + "/lists/" + listid + "/items",
+            os.environ["GRAPH_BASE_URL"] + site_id + "/lists/" + list_id + "/items",
             headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
             json={"fields": field_data},
             timeout=30,
@@ -350,16 +350,18 @@ def create_sp_item(siteid: str, listid: str, field_data: dict):
 
 
 @Decorators.refresh_graph_token
-def update_sp_item(siteid: str, listid: str, item_id: str, field_data: dict[str, str]):
+def update_sp_item(
+    site_id: str, list_id: str, item_id: str, field_data: dict[str, str]
+):
     """
     Update an item in SharePoint
     """
     try:
         response = requests.patch(
             os.environ["GRAPH_BASE_URL"]
-            + siteid
+            + site_id
             + "/lists/"
-            + listid
+            + list_id
             + "/items/"
             + item_id
             + "/fields",
