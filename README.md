@@ -4,6 +4,8 @@ grafap (graph-wrap) is a Python package for interacting with the Microsoft Graph
 
 ## Installation
 
+Add as a git submodule for now. Intend on at some point making available as a proper package.
+
 ## Usage
 
 Several environment variables are required for grafap to function.
