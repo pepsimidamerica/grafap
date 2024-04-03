@@ -10,7 +10,8 @@ Add as a git submodule for now. Intend on at some point making available as a pr
 
 Several environment variables are required for grafap to function.
 
-> Note: The SP (SharePoint) environment variables are only needed if using the Get Site User By Lookup ID function since it uses a separate API that is for some godforsaken reason not available through Microsoft Graph. Even though Microsoft constantly shoves Graph down your throat and how cool and awesome it is. They may be same values as the Graph variables if you've given access to both APIs to the same app.
+~~> Note: The SP (SharePoint) environment variables are only needed if using the Get Site User By Lookup ID function since it uses a separate API that is for some godforsaken reason not available through Microsoft Graph. Even though Microsoft constantly shoves Graph down your throat and how cool and awesome it is. They may be same values as the Graph variables if you've given access to both APIs to the same app.~~
+Nevermind, they just decided it would be cool and fun to hide the user information list. You just have to know a guy to get into the club.
 
 | Required? | Env Variable | Description |
 | --------- | ------------ | ----------- |
@@ -20,11 +21,6 @@ Several environment variables are required for grafap to function.
 | Yes | GRAPH_CLIENT_SECRET | Client secret from app registration created in Azure. |
 | Yes | GRAPH_GRANT_TYPE | Should be 'client_credentials' |
 | Yes | GRAPH_SCOPES | Should typically be <https://graph.microsoft.com/.default> unless using more fine-grained permissions. |
-| No | SP_LOGIN_BASE_URL | Should be same as graph login URL, just including as separate in case. |
-| No | SP_TENANT_ID | Tenant ID from app registration created in Azure. |
-| No | SP_CLIENT_ID | Client ID from app registration created in Azure. |
-| No | SP_CLIENT_SECRET | Client secret from app registration created in Azure. |
-| No | SP_GRANT_TYPE | Should be 'client_credentials' |
 | No | SP_SITE | Base Site URL you're interacting with. Should be <https://DOMAIN.sharepoint.com/> |
 
 ### Get SharePoint Sites
@@ -76,8 +72,15 @@ Updates one or more fields of a particular item in a list. Formatted almost iden
 }
 ```
 
-### Get Site User By Lookup ID
+### Get all Sharepoint Users' Info
 
-Not yet done, because Microsoft complicating things. Needed to associate the lookup IDs coming back from People columns with the actual person they represent.
+Queries hidden User Information List SP list. Returns all user info so can be associated with lookup values.
 
-> Note: Uses SharePoint REST API, not the main Microsoft Graph API.
+*site_id* - ID for which site list is in, can be 'root'
+
+### Get a Sharepoint User's Info
+
+Queries hidden User Information List. Returns info for a specific user ID.
+
+*site_id* - ID for which site list is in, can be 'root'
+*user_id* - ID of the list item being queried

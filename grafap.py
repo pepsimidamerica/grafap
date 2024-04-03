@@ -41,29 +41,29 @@ class Decorators:
         wrapper.__name__ = decorated.__name__
         return wrapper
 
-    @staticmethod
-    def refresh_sp_token(decorated):
-        """
-        Decorator to refresh the sharepoint rest API access token if it has expired
-        """
+        # @staticmethod
+        # def refresh_sp_token(decorated):
+        # """
+        # Decorator to refresh the sharepoint rest API access token if it has expired
+        # """
 
-        def wrapper(*args, **kwargs):
-            """
-            Wrapper function
-            """
-            if "SP_BEARER_TOKEN_EXPIRES_AT" not in os.environ:
-                expires_at = "01/01/1901 00:00:00"
-            else:
-                expires_at = os.environ["SP_BEARER_TOKEN_EXPIRES_AT"]
-            if (
-                "SP_BEARER_TOKEN" not in os.environ
-                or datetime.strptime(expires_at, "%m/%d/%Y %H:%M:%S") < datetime.now()
-            ):
-                Decorators.get_sp_token()
-            return decorated(*args, **kwargs)
+        # def wrapper(*args, **kwargs):
+        #     """
+        #     Wrapper function
+        #     """
+        #     if "SP_BEARER_TOKEN_EXPIRES_AT" not in os.environ:
+        #         expires_at = "01/01/1901 00:00:00"
+        #     else:
+        #         expires_at = os.environ["SP_BEARER_TOKEN_EXPIRES_AT"]
+        #     if (
+        #         "SP_BEARER_TOKEN" not in os.environ
+        #         or datetime.strptime(expires_at, "%m/%d/%Y %H:%M:%S") < datetime.now()
+        #     ):
+        #         Decorators.get_sp_token()
+        #     return decorated(*args, **kwargs)
 
-        wrapper.__name__ = decorated.__name__
-        return wrapper
+        # wrapper.__name__ = decorated.__name__
+        # return wrapper
 
     @staticmethod
     def get_graph_token():
@@ -116,61 +116,61 @@ class Decorators:
             print("Error, could not set os env expires at: ", e)
             raise Exception("Error, could not set os env expires at: " + str(e))
 
-    @staticmethod
-    def get_sp_token():
-        """
-        Gets Sharepoint Rest API bearer token.
-        """
-        if "SP_LOGIN_BASE_URL" not in os.environ:
-            raise Exception("Error, could not find SP_LOGIN_BASE_URL in env")
-        if "SP_TENANT_ID" not in os.environ:
-            raise Exception("Error, could not find SP_TENANT_ID in env")
-        if "SP_CLIENT_ID" not in os.environ:
-            raise Exception("Error, could not find SP_CLIENT_ID in env")
-        if "SP_CLIENT_SECRET" not in os.environ:
-            raise Exception("Error, could not find SP_CLIENT_SECRET in env")
-        if "SP_GRANT_TYPE" not in os.environ:
-            raise Exception("Error, could not find SP_GRANT_TYPE in env")
-        if "SP_SITE" not in os.environ:
-            raise Exception("Error, could not find SP_SITE in env")
+        # @staticmethod
+        # def get_sp_token():
+        # """
+        # Gets Sharepoint Rest API bearer token.
+        # """
+        # if "SP_LOGIN_BASE_URL" not in os.environ:
+        #     raise Exception("Error, could not find SP_LOGIN_BASE_URL in env")
+        # if "SP_TENANT_ID" not in os.environ:
+        #     raise Exception("Error, could not find SP_TENANT_ID in env")
+        # if "SP_CLIENT_ID" not in os.environ:
+        #     raise Exception("Error, could not find SP_CLIENT_ID in env")
+        # if "SP_CLIENT_SECRET" not in os.environ:
+        #     raise Exception("Error, could not find SP_CLIENT_SECRET in env")
+        # if "SP_GRANT_TYPE" not in os.environ:
+        #     raise Exception("Error, could not find SP_GRANT_TYPE in env")
+        # if "SP_SITE" not in os.environ:
+        #     raise Exception("Error, could not find SP_SITE in env")
 
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
+        # headers = {
+        #     "Accept": "application/json",
+        #     "Content-Type": "application/x-www-form-urlencoded",
+        # }
 
-        response = requests.post(
-            os.environ["SP_LOGIN_BASE_URL"]
-            + os.environ["SP_TENANT_ID"]
-            + "/oauth2/token",
-            headers=headers,
-            data={
-                "client_id": os.environ["SP_CLIENT_ID"],
-                "client_secret": os.environ["SP_CLIENT_SECRET"],
-                "grant_type": os.environ["SP_GRANT_TYPE"],
-                "resource": os.environ["SP_SITE"],
-            },
-            timeout=30,
-        )
+        # response = requests.post(
+        #     os.environ["SP_LOGIN_BASE_URL"]
+        #     + os.environ["SP_TENANT_ID"]
+        #     + "/oauth2/token",
+        #     headers=headers,
+        #     data={
+        #         "client_id": os.environ["SP_CLIENT_ID"],
+        #         "client_secret": os.environ["SP_CLIENT_SECRET"],
+        #         "grant_type": os.environ["SP_GRANT_TYPE"],
+        #         "resource": os.environ["SP_SITE"],
+        #     },
+        #     timeout=30,
+        # )
 
-        try:
-            os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
-        except Exception as e:
-            print("Error, could not set OS env bearer token: ", e)
-            print(response.content)
-            raise Exception("Error, could not set OS env bearer token: " + str(e))
-        try:
-            expires_at = datetime.now() + timedelta(
-                seconds=float(response.json()["expires_in"])
-            )
-            os.environ["SP_BEARER_TOKEN_EXPIRES_AT"] = expires_at.strftime(
-                "%m/%d/%Y %H:%M:%S"
-            )
-        except Exception as e:
-            print("Error, could not set os env expires at: ", e)
-            raise Exception("Error, could not set os env expires at: " + str(e))
+        # try:
+        #     os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
+        # except Exception as e:
+        #     print("Error, could not set OS env bearer token: ", e)
+        #     print(response.content)
+        #     raise Exception("Error, could not set OS env bearer token: " + str(e))
+        # try:
+        #     expires_at = datetime.now() + timedelta(
+        #         seconds=float(response.json()["expires_in"])
+        #     )
+        #     os.environ["SP_BEARER_TOKEN_EXPIRES_AT"] = expires_at.strftime(
+        #         "%m/%d/%Y %H:%M:%S"
+        #     )
+        # except Exception as e:
+        #     print("Error, could not set os env expires at: ", e)
+        #     raise Exception("Error, could not set os env expires at: " + str(e))
 
-        print(os.environ["SP_BEARER_TOKEN"])
+        # print(os.environ["SP_BEARER_TOKEN"])
 
 
 @Decorators.refresh_graph_token
@@ -379,24 +379,94 @@ def update_sp_item(
         raise Exception("Error, could not update item in sharepoint: " + str(e))
 
 
-@Decorators.refresh_sp_token
-def get_site_user_by_id(site_url: str, user_id: str) -> dict:
-    """
-    Gets a sharepoint site user by the lookup id
-    """
-    headers = {
-        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-        "Accept": "application/json;odata=verbose",
-    }
+# Doesn't seem to be needed, commenting out for now
+# @Decorators.refresh_sp_token
+# def get_site_user_by_id(site_url: str, user_id: str) -> dict:
+#     """
+#     Gets a sharepoint site user by the lookup id
+#     """
+#     headers = {
+#         "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+#         "Accept": "application/json;odata=verbose",
+#     }
 
-    url = f"{site_url}/_api/web/siteusers/getbyid({user_id})"
+#     url = f"{site_url}/_api/web/siteusers/getbyid({user_id})"
 
-    response = requests.get(url, headers=headers, timeout=30)
+#     response = requests.get(url, headers=headers, timeout=30)
+
+#     if response.status_code != 200:
+#         print("Status Code: ", response.status_code)
+#         print("Error, could not get site user data: ", response.content)
+#         raise Exception("Error, could not get site user data: " + str(response.content))
+
+
+@Decorators.refresh_graph_token
+def get_all_sp_users_info(site_id: str) -> dict:
+    """
+    Query the hidden sharepoint list that contains user information
+    Can use "root" as the site_id for the root site, otherwise use the site id
+    You would want to use whichever site ID is associated with the list you are querying
+    """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    def recurs_get(url, headers):
+        """
+        Recursive function to handle pagination
+        """
+        response = requests.get(url, headers=headers, timeout=30)
+
+        if response.status_code != 200:
+            print("Error, could not get sharepoint list data: ", response.content)
+            raise Exception(
+                "Error, could not get sharepoint list data: " + str(response.content)
+            )
+
+        data = response.json()
+
+        # Check for the next page
+        if "@odata.nextLink" in data:
+            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        else:
+            return data["value"]
+
+    url = (
+        os.environ["GRAPH_BASE_URL"] + site_id + "/lists('User Information List')/items"
+    )
+
+    result = recurs_get(
+        url,
+        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+    )
+
+    return result
+
+
+@Decorators.refresh_graph_token
+def get_sp_user_info(site_id: str, user_id: str) -> dict:
+    """
+    Get a specific user from the hidden sharepoint list that contains user information
+    """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    url = (
+        os.environ["GRAPH_BASE_URL"]
+        + site_id
+        + "/lists('User Information List')/items/"
+        + user_id
+    )
+    response = requests.get(
+        url,
+        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        timeout=30,
+    )
 
     if response.status_code != 200:
-        print("Status Code: ", response.status_code)
-        print("Error, could not get site user data: ", response.content)
-        raise Exception("Error, could not get site user data: " + str(response.content))
+        print("Error, could not get sharepoint list data: ", response.content)
+        raise Exception(
+            "Error, could not get sharepoint list data: " + str(response.content)
+        )
 
     return response.json()
 
@@ -426,10 +496,14 @@ if __name__ == "__main__":
     os.environ["SP_GRANT_TYPE"] = config["graph_grant_type"]
     os.environ["SP_SITE"] = config["sp_site"]
 
-    users = get_users()
+    # res = get_sp_user_info(
+    #     "blah",
+    #     "17",
+    # )
+    # pprint(res)
 
-    # json.loads(json.dumps(users))
-
-    print(
-        next((item for item in users if item["displayName"] == "Jordan Maynor"), None)
+    res = get_sp_user_info(
+        "root",
+        "17",
     )
+    pprint(res)
