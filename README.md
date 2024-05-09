@@ -41,6 +41,8 @@ Gets all items in a sharepoint list. Takes 2 required parameters and 1 optional.
 *list_id* - ID for the list being queried
 *filter_query* - Optional OData filter query, e.g. "Department eq 1234"
 
+> Note: If you're using the filter_query expression, whichever field you want to filter on needs to be indexed or you'll get an error. To index a column, just add it in the sharepoint list settings.
+
 ### Create SharePoint List Item
 
 Creates a new item in a given sharepoint list. Takes three parameters:
