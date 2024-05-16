@@ -350,6 +350,32 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict):
 
 
 @Decorators.refresh_graph_token
+def delete_sp_item(site_id: str, list_id: str, item_id: str):
+    """
+    Delete an item in SharePoint
+    """
+    try:
+        response = requests.delete(
+            os.environ["GRAPH_BASE_URL"]
+            + site_id
+            + "/lists/"
+            + list_id
+            + "/items/"
+            + item_id,
+            headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+            timeout=30,
+        )
+        if response.status_code != 204:
+            print("Error, could not delete item in sharepoint: ", response.content)
+            raise Exception(
+                "Error, could not delete item in sharepoint: " + str(response.content)
+            )
+    except Exception as e:
+        print("Error, could not delete item in sharepoint: ", e)
+        raise Exception("Error, could not delete item in sharepoint: " + str(e))
+
+
+@Decorators.refresh_graph_token
 def update_sp_item(
     site_id: str, list_id: str, item_id: str, field_data: dict[str, str]
 ):
@@ -577,15 +603,3 @@ if __name__ == "__main__":
     os.environ["SP_TENANT_ID"] = config["graph_tenant_id"]
     os.environ["SP_GRANT_TYPE"] = config["graph_grant_type"]
     os.environ["SP_SITE"] = config["sp_site"]
-
-    # res = get_sp_user_info(
-    #     "blah",
-    #     "17",
-    # )
-    # pprint(res)
-
-    res = get_sp_user_info(
-        "root",
-        "17",
-    )
-    pprint(res)
