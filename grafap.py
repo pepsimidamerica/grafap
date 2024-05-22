@@ -328,6 +328,38 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
 
 
 @Decorators.refresh_graph_token
+def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
+    """
+    Gets field data from a specific sharepoint list item
+    """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    url = (
+        os.environ["GRAPH_BASE_URL"]
+        + site_id
+        + "/lists/"
+        + list_id
+        + "/items/"
+        + item_id
+    )
+
+    response = requests.get(
+        url,
+        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        timeout=30,
+    )
+
+    if response.status_code != 200:
+        print("Error, could not get sharepoint list data: ", response.content)
+        raise Exception(
+            "Error, could not get sharepoint list data: " + str(response.content)
+        )
+
+    return response.json()
+
+
+@Decorators.refresh_graph_token
 def create_sp_item(site_id: str, list_id: str, field_data: dict):
     """
     Create a new item in SharePoint
