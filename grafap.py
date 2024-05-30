@@ -374,7 +374,8 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict):
         if response.status_code != 201:
             print("Error, could not create item in sharepoint: ", response.content)
             raise Exception(
-                "Error, could not create item in sharepoint: " + str(response.content)
+                "Error {response.status_code}, could not create item in sharepoint: "
+                + str(response.content)
             )
     except Exception as e:
         print("Error, could not create item in sharepoint: ", e)
@@ -435,6 +436,29 @@ def update_sp_item(
     except Exception as e:
         print("Error, could not update item in sharepoint: ", e)
         raise Exception("Error, could not update item in sharepoint: " + str(e))
+
+
+@Decorators.refresh_graph_token
+def get_sp_termstore_groups(site_id: str) -> dict:
+    """
+    Lists all termstore group objects in a site
+    """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    response = requests.get(
+        os.environ["GRAPH_BASE_URL"] + site_id + "/termStore/groups",
+        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        timeout=30,
+    )
+
+    if response.status_code != 200:
+        print("Error, could not get termstore groups: ", response.content)
+        raise Exception(
+            "Error, could not get termstore groups: " + str(response.content)
+        )
+
+    return response.json()
 
 
 # Doesn't seem to be needed, commenting out for now
