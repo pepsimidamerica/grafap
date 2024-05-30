@@ -188,8 +188,14 @@ def get_users() -> dict:
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print("Error, could not get user data: ", response.content)
-            raise Exception("Error, could not get user data: " + str(response.content))
+            print(
+                f"Error {response.status_code}, could not get user data: ",
+                response.content,
+            )
+            raise Exception(
+                f"Error {response.status_code}, could not get user data: "
+                + str(response.content)
+            )
 
         data = response.json()
 
@@ -222,9 +228,13 @@ def get_sp_sites() -> dict:
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print("Error, could not get sharepoint site data: ", response.content)
+            print(
+                f"Error {response.status_code}, could not get sharepoint site data: ",
+                response.content,
+            )
             raise Exception(
-                "Error, could not get sharepoint site data: " + str(response.content)
+                f"Error {response.status_code}, could not get sharepoint site data: "
+                + str(response.content)
             )
 
         data = response.json()
@@ -257,9 +267,13 @@ def get_sp_lists(site_id: str) -> dict:
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print("Error, could not get sharepoint list data: ", response.content)
+            print(
+                f"Error {response.status_code}, could not get sharepoint list data: ",
+                response.content,
+            )
             raise Exception(
-                "Error, could not get sharepoint list data: " + str(response.content)
+                f"Error {response.status_code}, could not get sharepoint list data: "
+                + str(response.content)
             )
 
         data = response.json()
@@ -295,9 +309,13 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print("Error, could not get sharepoint list data: ", response.content)
+            print(
+                f"Error {response.status_code}, could not get sharepoint list data: ",
+                response.content,
+            )
             raise Exception(
-                "Error, could not get sharepoint list data: " + str(response.content)
+                f"Error {response.status_code}, could not get sharepoint list data: "
+                + str(response.content)
             )
 
         data = response.json()
@@ -351,9 +369,13 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
     )
 
     if response.status_code != 200:
-        print("Error, could not get sharepoint list data: ", response.content)
+        print(
+            f"Error {response.status_code}, could not get sharepoint list data: ",
+            response.content,
+        )
         raise Exception(
-            "Error, could not get sharepoint list data: " + str(response.content)
+            f"Error {response.status_code}, could not get sharepoint list data: "
+            + str(response.content)
         )
 
     return response.json()
@@ -372,9 +394,12 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict):
             timeout=30,
         )
         if response.status_code != 201:
-            print("Error, could not create item in sharepoint: ", response.content)
+            print(
+                f"Error {response.status_code}, could not create item in sharepoint: ",
+                response.content,
+            )
             raise Exception(
-                "Error {response.status_code}, could not create item in sharepoint: "
+                f"Error {response.status_code}, could not create item in sharepoint: "
                 + str(response.content)
             )
     except Exception as e:
@@ -399,9 +424,13 @@ def delete_sp_item(site_id: str, list_id: str, item_id: str):
             timeout=30,
         )
         if response.status_code != 204:
-            print("Error, could not delete item in sharepoint: ", response.content)
+            print(
+                f"Error {response.status_code}, could not delete item in sharepoint: ",
+                response.content,
+            )
             raise Exception(
-                "Error, could not delete item in sharepoint: " + str(response.content)
+                f"Error {response.status_code}, could not delete item in sharepoint: "
+                + str(response.content)
             )
     except Exception as e:
         print("Error, could not delete item in sharepoint: ", e)
@@ -429,9 +458,13 @@ def update_sp_item(
             timeout=30,
         )
         if response.status_code != 200:
-            print("Error, could not update item in sharepoint: ", response.content)
+            print(
+                f"Error {response.status_code}, could not update item in sharepoint: ",
+                response.content,
+            )
             raise Exception(
-                "Error, could not update item in sharepoint: " + str(response.content)
+                f"Error {response.status_code}, could not update item in sharepoint: "
+                + str(response.content)
             )
     except Exception as e:
         print("Error, could not update item in sharepoint: ", e)
@@ -453,9 +486,13 @@ def get_sp_termstore_groups(site_id: str) -> dict:
     )
 
     if response.status_code != 200:
-        print("Error, could not get termstore groups: ", response.content)
+        print(
+            f"Error {response.status_code}, could not get termstore groups: ",
+            response.content,
+        )
         raise Exception(
-            "Error, could not get termstore groups: " + str(response.content)
+            f"Error {response.status_code}, could not get termstore groups: "
+            + str(response.content)
         )
 
     return response.json()
@@ -499,9 +536,13 @@ def get_all_sp_users_info(site_id: str) -> dict:
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print("Error, could not get sharepoint list data: ", response.content)
+            print(
+                f"Error {response.status_code}, could not get sharepoint list data: ",
+                response.content,
+            )
             raise Exception(
-                "Error, could not get sharepoint list data: " + str(response.content)
+                f"Error {response.status_code}, could not get sharepoint list data: "
+                + str(response.content)
             )
 
         data = response.json()
@@ -545,9 +586,13 @@ def get_sp_user_info(site_id: str, user_id: str) -> dict:
     )
 
     if response.status_code != 200:
-        print("Error, could not get sharepoint list data: ", response.content)
+        print(
+            f"Error {response.status_code}, could not get sharepoint list data: ",
+            response.content,
+        )
         raise Exception(
-            "Error, could not get sharepoint list data: " + str(response.content)
+            f"Error {response.status_code}, could not get sharepoint list data: "
+            + str(response.content)
         )
 
     return response.json()
