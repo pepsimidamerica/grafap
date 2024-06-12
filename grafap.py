@@ -6,6 +6,7 @@ import json
 import os
 from datetime import datetime, timedelta
 from pprint import pprint
+from typing import Optional
 from urllib import response
 
 import requests
@@ -339,7 +340,10 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
 
     result = recurs_get(
         url,
-        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        headers={
+            "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
+            "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
+        },
     )
 
     return result
@@ -364,7 +368,10 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
 
     response = requests.get(
         url,
-        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        headers={
+            "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
+            "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
+        },
         timeout=30,
     )
 
@@ -566,7 +573,9 @@ def get_all_sp_users_info(site_id: str) -> dict:
 
 
 @Decorators.refresh_graph_token
-def get_sp_user_info(site_id: str, user_id: str) -> dict:
+def get_sp_user_info(
+    site_id: str, user_id: Optional[str], email: Optional[str]
+) -> dict:
     """
     Get a specific user from the hidden sharepoint list that contains user information
     """
@@ -574,14 +583,20 @@ def get_sp_user_info(site_id: str, user_id: str) -> dict:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
 
     url = (
-        os.environ["GRAPH_BASE_URL"]
-        + site_id
-        + "/lists('User Information List')/items/"
-        + user_id
+        os.environ["GRAPH_BASE_URL"] + site_id + "/lists('User Information List')/items"
     )
+
+    if user_id:
+        url += "/" + user_id
+    elif email:
+        url += "?$filter=fields/UserName eq '" + email + "'"
+
     response = requests.get(
         url,
-        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        headers={
+            "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
+            "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
+        },
         timeout=30,
     )
 
@@ -595,6 +610,11 @@ def get_sp_user_info(site_id: str, user_id: str) -> dict:
             + str(response.content)
         )
 
+    if "value" in response.json():
+        if len(response.json()["value"]) == 0:
+            raise Exception("Error, could not find user in sharepoint list")
+        else:
+            return response.json()["value"][0]
     return response.json()
 
 
