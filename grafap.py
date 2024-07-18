@@ -41,29 +41,29 @@ class Decorators:
         wrapper.__name__ = decorated.__name__
         return wrapper
 
-        # @staticmethod
-        # def refresh_sp_token(decorated):
-        # """
-        # Decorator to refresh the sharepoint rest API access token if it has expired
-        # """
+    @staticmethod
+    def refresh_sp_token(decorated):
+        """
+        Decorator to refresh the sharepoint rest API access token if it has expired
+        """
 
-        # def wrapper(*args, **kwargs):
-        #     """
-        #     Wrapper function
-        #     """
-        #     if "SP_BEARER_TOKEN_EXPIRES_AT" not in os.environ:
-        #         expires_at = "01/01/1901 00:00:00"
-        #     else:
-        #         expires_at = os.environ["SP_BEARER_TOKEN_EXPIRES_AT"]
-        #     if (
-        #         "SP_BEARER_TOKEN" not in os.environ
-        #         or datetime.strptime(expires_at, "%m/%d/%Y %H:%M:%S") < datetime.now()
-        #     ):
-        #         Decorators.get_sp_token()
-        #     return decorated(*args, **kwargs)
+        def wrapper(*args, **kwargs):
+            """
+            Wrapper function
+            """
+            if "SP_BEARER_TOKEN_EXPIRES_AT" not in os.environ:
+                expires_at = "01/01/1901 00:00:00"
+            else:
+                expires_at = os.environ["SP_BEARER_TOKEN_EXPIRES_AT"]
+            if (
+                "SP_BEARER_TOKEN" not in os.environ
+                or datetime.strptime(expires_at, "%m/%d/%Y %H:%M:%S") < datetime.now()
+            ):
+                Decorators.get_sp_token()
+            return decorated(*args, **kwargs)
 
-        # wrapper.__name__ = decorated.__name__
-        # return wrapper
+        wrapper.__name__ = decorated.__name__
+        return wrapper
 
     @staticmethod
     def get_graph_token():
@@ -116,61 +116,61 @@ class Decorators:
             print("Error, could not set os env expires at: ", e)
             raise Exception("Error, could not set os env expires at: " + str(e))
 
-        # @staticmethod
-        # def get_sp_token():
-        # """
-        # Gets Sharepoint Rest API bearer token.
-        # """
-        # if "SP_LOGIN_BASE_URL" not in os.environ:
-        #     raise Exception("Error, could not find SP_LOGIN_BASE_URL in env")
-        # if "SP_TENANT_ID" not in os.environ:
-        #     raise Exception("Error, could not find SP_TENANT_ID in env")
-        # if "SP_CLIENT_ID" not in os.environ:
-        #     raise Exception("Error, could not find SP_CLIENT_ID in env")
-        # if "SP_CLIENT_SECRET" not in os.environ:
-        #     raise Exception("Error, could not find SP_CLIENT_SECRET in env")
-        # if "SP_GRANT_TYPE" not in os.environ:
-        #     raise Exception("Error, could not find SP_GRANT_TYPE in env")
-        # if "SP_SITE" not in os.environ:
-        #     raise Exception("Error, could not find SP_SITE in env")
+    @staticmethod
+    def get_sp_token():
+        """
+        Gets Sharepoint Rest API bearer token.
+        """
+        if "SP_LOGIN_BASE_URL" not in os.environ:
+            raise Exception("Error, could not find SP_LOGIN_BASE_URL in env")
+        if "SP_TENANT_ID" not in os.environ:
+            raise Exception("Error, could not find SP_TENANT_ID in env")
+        if "SP_CLIENT_ID" not in os.environ:
+            raise Exception("Error, could not find SP_CLIENT_ID in env")
+        if "SP_CLIENT_SECRET" not in os.environ:
+            raise Exception("Error, could not find SP_CLIENT_SECRET in env")
+        if "SP_GRANT_TYPE" not in os.environ:
+            raise Exception("Error, could not find SP_GRANT_TYPE in env")
+        if "SP_SITE" not in os.environ:
+            raise Exception("Error, could not find SP_SITE in env")
 
-        # headers = {
-        #     "Accept": "application/json",
-        #     "Content-Type": "application/x-www-form-urlencoded",
-        # }
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
 
-        # response = requests.post(
-        #     os.environ["SP_LOGIN_BASE_URL"]
-        #     + os.environ["SP_TENANT_ID"]
-        #     + "/oauth2/token",
-        #     headers=headers,
-        #     data={
-        #         "client_id": os.environ["SP_CLIENT_ID"],
-        #         "client_secret": os.environ["SP_CLIENT_SECRET"],
-        #         "grant_type": os.environ["SP_GRANT_TYPE"],
-        #         "resource": os.environ["SP_SITE"],
-        #     },
-        #     timeout=30,
-        # )
+        response = requests.post(
+            os.environ["SP_LOGIN_BASE_URL"]
+            + os.environ["SP_TENANT_ID"]
+            + "/oauth2/token",
+            headers=headers,
+            data={
+                "client_id": os.environ["SP_CLIENT_ID"],
+                "client_secret": os.environ["SP_CLIENT_SECRET"],
+                "grant_type": os.environ["SP_GRANT_TYPE"],
+                "resource": os.environ["SP_SITE"],
+            },
+            timeout=30,
+        )
 
-        # try:
-        #     os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
-        # except Exception as e:
-        #     print("Error, could not set OS env bearer token: ", e)
-        #     print(response.content)
-        #     raise Exception("Error, could not set OS env bearer token: " + str(e))
-        # try:
-        #     expires_at = datetime.now() + timedelta(
-        #         seconds=float(response.json()["expires_in"])
-        #     )
-        #     os.environ["SP_BEARER_TOKEN_EXPIRES_AT"] = expires_at.strftime(
-        #         "%m/%d/%Y %H:%M:%S"
-        #     )
-        # except Exception as e:
-        #     print("Error, could not set os env expires at: ", e)
-        #     raise Exception("Error, could not set os env expires at: " + str(e))
+        try:
+            os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
+        except Exception as e:
+            print("Error, could not set OS env bearer token: ", e)
+            print(response.content)
+            raise Exception("Error, could not set OS env bearer token: " + str(e))
+        try:
+            expires_at = datetime.now() + timedelta(
+                seconds=float(response.json()["expires_in"])
+            )
+            os.environ["SP_BEARER_TOKEN_EXPIRES_AT"] = expires_at.strftime(
+                "%m/%d/%Y %H:%M:%S"
+            )
+        except Exception as e:
+            print("Error, could not set os env expires at: ", e)
+            raise Exception("Error, could not set os env expires at: " + str(e))
 
-        # print(os.environ["SP_BEARER_TOKEN"])
+        print(os.environ["SP_BEARER_TOKEN"])
 
 
 @Decorators.refresh_graph_token
@@ -466,6 +466,31 @@ def get_sp_user_info(site_id: str, user_id: str) -> dict:
         print("Error, could not get sharepoint list data: ", response.content)
         raise Exception(
             "Error, could not get sharepoint list data: " + str(response.content)
+        )
+
+    return response.json()
+
+
+@Decorators.refresh_sp_token
+def get_sp_list_item_attachments(site_url: str, list_title: str, item_id: str):
+    """
+    Get attachments for a specific list item
+    """
+
+    headers = {
+        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+        "Accept": "application/json;odata=verbose",
+    }
+
+    url = f"{site_url}/_api/web/lists/getbytitle('{list_title}')/items({item_id})/AttachmentFiles"
+
+    response = requests.get(url, headers=headers, timeout=30)
+
+    if response.status_code != 200:
+        print("Status Code: ", response.status_code)
+        print("Error, could not get list item attachments: ", response.content)
+        raise Exception(
+            "Error, could not get list item attachments: " + str(response.content)
         )
 
     return response.json()
