@@ -4,6 +4,7 @@ This module contains functions to interact with Microsoft Graph API
 
 import json
 import os
+import re
 from datetime import datetime, timedelta
 from pprint import pprint
 from typing import Optional
@@ -389,7 +390,7 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
 
 
 @Decorators.refresh_graph_token
-def create_sp_item(site_id: str, list_id: str, field_data: dict):
+def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
     """
     Create a new item in SharePoint
     """
@@ -412,6 +413,8 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict):
     except Exception as e:
         print("Error, could not create item in sharepoint: ", e)
         raise Exception("Error, could not create item in sharepoint: " + str(e))
+
+    return response.json()
 
 
 @Decorators.refresh_graph_token
