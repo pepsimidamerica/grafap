@@ -104,9 +104,9 @@ class Decorators:
         try:
             os.environ["GRAPH_BEARER_TOKEN"] = response.json()["access_token"]
         except Exception as e:
-            print("Error, could not set OS env bearer token: ", e)
-            print(response.content)
-            raise Exception("Error, could not set OS env bearer token: " + str(e))
+            raise Exception(
+                "Error, could not set OS env bearer token: " + str(response.content)
+            )
         try:
             expires_at = datetime.now() + timedelta(
                 seconds=response.json()["expires_in"]
@@ -701,29 +701,3 @@ def get_sp_user_info(
 #         raise Exception("Error, could not get section pages: " + str(response.content))
 
 #     return response.json()
-
-
-if __name__ == "__main__":
-    """
-    Testing
-    """
-    # Import JSON config file
-    try:
-        with open("config.json") as json_file:
-            config = json.load(json_file)
-    except Exception as e:
-        print("Error, could not open config file: ", e)
-        exit(1)
-    os.environ["GRAPH_BASE_URL"] = config["graph_base_url"]
-    os.environ["GRAPH_LOGIN_BASE_URL"] = config["graph_login_base_url"]
-    os.environ["GRAPH_CLIENT_ID"] = config["graph_client_id"]
-    os.environ["GRAPH_CLIENT_SECRET"] = config["graph_client_secret"]
-    os.environ["GRAPH_TENANT_ID"] = config["graph_tenant_id"]
-    os.environ["GRAPH_GRANT_TYPE"] = config["graph_grant_type"]
-    os.environ["GRAPH_SCOPES"] = config["graph_scopes"]
-    os.environ["SP_LOGIN_BASE_URL"] = config["graph_login_base_url"]
-    os.environ["SP_CLIENT_ID"] = config["graph_client_id"]
-    os.environ["SP_CLIENT_SECRET"] = config["graph_client_secret"]
-    os.environ["SP_TENANT_ID"] = config["graph_tenant_id"]
-    os.environ["SP_GRANT_TYPE"] = config["graph_grant_type"]
-    os.environ["SP_SITE"] = config["sp_site"]
