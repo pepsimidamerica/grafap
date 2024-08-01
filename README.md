@@ -16,6 +16,7 @@ Nevermind, they just decided it would be cool and fun to hide the user informati
 | Required? | Env Variable | Description |
 | --------- | ------------ | ----------- |
 | Yes | GRAPH_LOGIN_BASE_URL | Should be <https://login.microsoftonline.com/> |
+| Yes | GRAPH_BASE_URL | Should be <https://graph.microsoft.com/v1.0/sites/> |
 | Yes | GRAPH_TENANT_ID | Tenant ID from app registration created in Azure. |
 | Yes | GRAPH_CLIENT_ID | Client ID from app registration created in Azure. |
 | Yes | GRAPH_CLIENT_SECRET | Client secret from app registration created in Azure. |
