@@ -8,7 +8,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="grafap",
-    version="0.1.0",
+    version="0.1.1",
     description="Python package that acts as a wrapper for the Microsoft Graph API.",
     long_description=long_description,
     long_description_content_type="text/markdown",

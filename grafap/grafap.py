@@ -539,11 +539,16 @@ def get_all_sp_users_info(site_id: str) -> dict:
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
 
-    def recurs_get(url, headers):
+    def recurs_get(url, headers, params=None):
         """
         Recursive function to handle pagination
         """
-        response = requests.get(url, headers=headers, timeout=30)
+        response = requests.get(
+            url,
+            headers=headers,
+            timeout=30,
+            params=params,
+        )
 
         if response.status_code != 200:
             print(
@@ -570,6 +575,7 @@ def get_all_sp_users_info(site_id: str) -> dict:
     result = recurs_get(
         url,
         headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        params={"expand": "fields(select=Id,Email)"},
     )
 
     return result
