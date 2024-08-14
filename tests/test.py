@@ -10,6 +10,9 @@ sys.path.insert(0, "")
 
 from grafap import *
 
-sites = grafap.get_sp_sites()
+res = grafap.ensure_sp_user(
+    "SITE URL",
+    "email@domain.com",
+)
 
 pass

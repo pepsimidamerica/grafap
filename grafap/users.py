@@ -169,3 +169,47 @@ def get_sp_user_info(
 #         print("Status Code: ", response.status_code)
 #         print("Error, could not get site user data: ", response.content)
 #         raise Exception("Error, could not get site user data: " + str(response.content))
+
+
+@Decorators.refresh_sp_token
+def ensure_sp_user(site_url: str, logon_name: str) -> dict:
+    """
+    Users sharepoint REST API, not MS Graph API. Endpoint is only available
+    in the Sharepoint one. Ensure a user exists in given website. This is used
+    so that the user can be used in sharepoint lists in that site. If the user has
+    never interacted with the site or been picked in a People field, they are not
+    available in the Graph API to pick from.
+    """
+    # Ensure the required environment variable is set
+    if "SP_BEARER_TOKEN" not in os.environ:
+        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
+
+    pass
+
+    # Construct the URL for the ensure user endpoint
+    url = f"{site_url}/_api/web/ensureuser"
+
+    # Make the POST request
+    response = requests.post(
+        url,
+        headers={
+            "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+            "Accept": "application/json;odata=verbose;charset=utf-8",
+            "Content-Type": "application/json;odata=verbose;charset=utf-8",
+        },
+        json={"logonName": logon_name},
+        timeout=30,
+    )
+
+    # Check for errors in the response
+    if response.status_code != 200:
+        print(
+            f"Error {response.status_code}, could not ensure user: ", response.content
+        )
+        raise Exception(
+            f"Error {response.status_code}, could not ensure user: "
+            + str(response.content)
+        )
+
+    # Return the JSON response
+    return response.json()

@@ -23,6 +23,15 @@ Nevermind, they just decided it would be cool and fun to hide the user informati
 | Yes | GRAPH_GRANT_TYPE | Should be 'client_credentials' |
 | Yes | GRAPH_SCOPES | Should typically be <https://graph.microsoft.com/.default> unless using more fine-grained permissions. |
 | No | SP_SITE | Base Site URL you're interacting with. Should be <https://DOMAIN.sharepoint.com/> |
+| No | SP_SCOPES | Scopes for sharepoint rest API. Should look like <https://{tenant name}.sharepoint.com/.default> |
+| No | SP_LOGIN_BASE_URL | Should be <https://login.microsoftonline.com/> |
+| No | SP_TENANT_ID | Tenant ID from app registration created in Azure. |
+| No | SP_CLIENT_ID | Client ID from app registration created in Azure. |
+| No | SP_GRANT_TYPE | client_credentials |
+| No | SP_CERTIFICATE_PATH | Path to `.pfx` file |
+| No | SP_CERTIFICATE_PASSWORD | Password for the `.pfx` file. |
+
+Most of the endpoints in grafap are just using the standard Microsoft Graph API which only requires a client ID and secret. The Sharepoint REST API, however requires using a client certificate. At least for the only endpoint being used thus far "ensure user".
 
 ### Get SharePoint Sites
 
