@@ -9,6 +9,8 @@ from grafap.auth import Decorators
 def get_sp_termstore_groups(site_id: str) -> dict:
     """
     Lists all termstore group objects in a site
+
+    :param site_id: The site id
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")

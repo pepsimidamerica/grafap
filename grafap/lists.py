@@ -9,6 +9,8 @@ from grafap.auth import Decorators
 def get_sp_lists(site_id: str) -> dict:
     """
     Gets all lists in a given site
+
+    :param site_id: The site id to get lists from
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -49,7 +51,10 @@ def get_sp_lists(site_id: str) -> dict:
 def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> dict:
     """
     Gets field data from a sharepoint list
-    filter_query is an optional OData filter query
+
+    :param site_id: The site id to get lists from
+    :param list_id: The list id to get items from
+    :param filter_query: An optional OData filter query
     """
 
     if "GRAPH_BASE_URL" not in os.environ:
@@ -105,6 +110,10 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
 def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
     """
     Gets field data from a specific sharepoint list item
+
+    :param site_id: The site id to get lists from
+    :param list_id: The list id to get items from
+    :param item_id: The id of the list item to get field data from
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -144,6 +153,10 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
 def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
     """
     Create a new item in SharePoint
+
+    :param site_id: The site id to create the item in
+    :param list_id: The list id to create the item in
+    :param field_data: A dictionary of field data to create the item with, recommended to pull a list of fields from the list first to get the correct field names
     """
     try:
         response = requests.post(
@@ -172,6 +185,10 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
 def delete_sp_item(site_id: str, list_id: str, item_id: str):
     """
     Delete an item in SharePoint
+
+    :param site_id: The site id to delete the item from
+    :param list_id: The list id to delete the item from
+    :param item_id: The id of the list item to delete
     """
     try:
         response = requests.delete(
@@ -204,6 +221,11 @@ def update_sp_item(
 ):
     """
     Update an item in SharePoint
+
+    :param site_id: The site id to update the item in
+    :param list_id: The list id to update the item in
+    :param item_id: The id of the list item to update
+    :param field_data: A dictionary of field data to update the item with, only include fields you're updating. Recommended to pull a list of fields from the list first to get the correct field names
     """
     try:
         response = requests.patch(

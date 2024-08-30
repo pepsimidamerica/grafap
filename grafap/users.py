@@ -58,6 +58,8 @@ def get_all_sp_users_info(site_id: str) -> dict:
     Query the hidden sharepoint list that contains user information
     Can use "root" as the site_id for the root site, otherwise use the site id
     You would want to use whichever site ID is associated with the list you are querying
+
+    :param site_id: The site id to get user information from
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -110,6 +112,10 @@ def get_sp_user_info(
 ) -> dict:
     """
     Get a specific user from the hidden sharepoint list that contains user information
+
+    :param site_id: The site id to get user information from
+    :param user_id: The user id to get information for
+    :param email: The email to get information for
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -179,6 +185,9 @@ def ensure_sp_user(site_url: str, logon_name: str) -> dict:
     so that the user can be used in sharepoint lists in that site. If the user has
     never interacted with the site or been picked in a People field, they are not
     available in the Graph API to pick from.
+
+    :param site_url: The site url
+    :param logon_name: The user's logon name, i.e. email address
     """
     # Ensure the required environment variable is set
     if "SP_BEARER_TOKEN" not in os.environ:
