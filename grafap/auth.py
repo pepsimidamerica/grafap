@@ -165,7 +165,7 @@ class Decorators:
 
         # JWT payload
         payload = {
-            "aud": f"https://login.microsoftonline.com/{os.environ["GRAPH_TENANT_ID"]}/oauth2/v2.0/token",
+            "aud": f"https://login.microsoftonline.com/{os.environ['GRAPH_TENANT_ID']}/oauth2/v2.0/token",
             "iss": os.environ["GRAPH_CLIENT_ID"],
             "sub": os.environ["GRAPH_CLIENT_ID"],
             "jti": str(uuid.uuid4()),
