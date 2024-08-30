@@ -52,6 +52,10 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
     """
     Gets field data from a sharepoint list
 
+    Note: If you're using the filter_query expression, whichever field you
+    want to filter on needs to be indexed or you'll get an error.
+    To index a column, just add it in the sharepoint list settings.
+
     :param site_id: The site id to get lists from
     :param list_id: The list id to get items from
     :param filter_query: An optional OData filter query
