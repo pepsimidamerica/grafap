@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import datetime, timedelta
+from pprint import pprint
 
 from dotenv import load_dotenv
 
@@ -48,3 +49,16 @@ res = grafap.ensure_sp_user(
     "SITE URL",
     "email@domain.com",
 )
+
+# List Attachments
+
+attachments = get_list_attachments(
+    os.environ["SP_SITE_INTERNAL"],
+    os.environ["SP_SITE_EXAMPLE_LIST_NAME"],
+    4,
+    download=True,
+)
+
+# Write first attachment data to a file
+with open(attachments[0]["name"], "wb") as f:
+    f.write(attachments[0]["data"])

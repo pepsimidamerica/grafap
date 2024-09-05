@@ -256,3 +256,95 @@ def update_sp_item(
     except Exception as e:
         print("Error, could not update item in sharepoint: ", e)
         raise Exception("Error, could not update item in sharepoint: " + str(e))
+
+
+@Decorators.refresh_sp_token
+def get_list_attachments(
+    site_url: str, list_name: str, item_id: int, download: bool = False
+) -> list[dict]:
+    """
+    Gets attachments for a sharepoint list item. Returns as a list of
+    dicts (if the given list item does have attachments) if download is False.
+    In other wirds, just downloading info about the attachments.
+
+    Note: Uses the Sharepoint REST API, and not the Graph API.
+
+    :param site_url: The site url to get list attachments from
+    :param item_id: The id of the list item to get attachments from
+    :param download: If True, download the attachments to the local filesystem
+    """
+    # Ensure the required environment variable is set
+    if "SP_BEARER_TOKEN" not in os.environ:
+        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
+
+    # Construct the URL for the ensure user endpoint
+    url = f"{site_url}/_api/lists/getByTitle('{list_name}')/items({item_id})?$select=AttachmentFiles,Title&$expand=AttachmentFiles"
+
+    response = requests.get(
+        url,
+        headers={
+            "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+            "Accept": "application/json;odata=verbose;charset=utf-8",
+            "Content-Type": "application/json;odata=verbose;charset=utf-8",
+        },
+        timeout=30,
+    )
+
+    # Check for errors in the response
+    if response.status_code != 200:
+        print(
+            f"Error {response.status_code}, could not get list attachments: ",
+            response.content,
+        )
+        raise Exception(
+            f"Error {response.status_code}, could not get list attachments: "
+            + str(response.content)
+        )
+
+    # Get the attachment data
+    data = response.json().get("d", {})
+    attachments = data.get("AttachmentFiles", {}).get("results", [])
+
+    pass
+
+    if not download:
+        return [
+            {"name": str(x.get("FileName")), "url": str(x.get("ServerRelativeUrl"))}
+            for x in attachments
+        ]
+
+    downloaded_files = []
+
+    for attachment in attachments:
+
+        relative_url = attachment.get("ServerRelativeUrl")
+        attachment_response = requests.get(
+            f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')/$value",
+            headers={
+                "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+                "Accept": "application/json;odata=verbose;charset=utf-8",
+                "Content-Type": "application/json;odata=verbose;charset=utf-8",
+            },
+            timeout=30,
+        )
+
+        # Check for errors in the response
+        if attachment_response.status_code != 200:
+            print(
+                f"Error {attachment_response.status_code}, could not download attachment: ",
+                attachment_response.content,
+            )
+            raise Exception(
+                f"Error {attachment_response.status_code}, could not download attachment: "
+                + str(attachment_response.content)
+            )
+
+        downloaded_files.append(
+            {
+                "name": attachment.get("FileName"),
+                "url": attachment.get("ServerRelativeUrl"),
+                "data": attachment_response.content,
+            }
+        )
+
+    return downloaded_files

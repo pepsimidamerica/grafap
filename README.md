@@ -10,7 +10,10 @@ grafap (graph-wrap) is a Python package for interacting with the Microsoft Graph
 
 Several environment variables are required for grafap to function. Most of the endpoints in grafap are just using the standard Microsoft Graph API which only requires a client ID and secret.
 
-The Sharepoint REST API, however requires using a client certificate. The Sharepoint REST API is currently only used for one function, "ensuring" a user in a sharepoint site. If you're not using that function, you don't need the certificate or the other env vars in the Sharepoint REST API table. Just the vars in the Graph table.
+The Sharepoint REST API, however requires using a client certificate. The Sharepoint REST API is currently only used for the following functions. If you're not using them, then you don't need the certificate or the other env vars in the Sharepoint REST API table. Only the vars in the Graph table.
+
+- "ensuring" a user in a sharepoint site.
+- downloading an attachment from a sharepoint list item
 
 ### MS Graph Env Vars
 

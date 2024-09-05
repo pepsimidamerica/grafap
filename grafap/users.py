@@ -193,8 +193,6 @@ def ensure_sp_user(site_url: str, logon_name: str) -> dict:
     if "SP_BEARER_TOKEN" not in os.environ:
         raise Exception("Error, could not find SP_BEARER_TOKEN in env")
 
-    pass
-
     # Construct the URL for the ensure user endpoint
     url = f"{site_url}/_api/web/ensureuser"
 
