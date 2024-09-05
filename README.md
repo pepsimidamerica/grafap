@@ -18,7 +18,7 @@ The Sharepoint REST API, however requires using a client certificate. The Sharep
 ### MS Graph Env Vars
 
 | Env Variable | Description |
-| --------- | ------------ | ----------- |
+| ------------ | ----------- |
 | GRAPH_LOGIN_BASE_URL | Should be <https://login.microsoftonline.com/> |
 | GRAPH_BASE_URL | Should be <https://graph.microsoft.com/v1.0/sites/> |
 | GRAPH_TENANT_ID | Tenant ID from app registration created in Azure. |
