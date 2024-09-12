@@ -62,3 +62,13 @@ attachments = get_list_attachments(
 # Write first attachment data to a file
 with open(attachments[0]["name"], "wb") as f:
     f.write(attachments[0]["data"])
+
+# AD Users
+
+users = grafap.get_ad_users(
+    select="id,userPrincipalName,givenName,surname,displayName,department,businessPhones,employeeOrgData,employeeId",
+    filter="mail eq 'example@domain.com'",
+    expand="manager($select=id,userPrincipalName,givenName,surname,displayName,department,businessPhones,employeeOrgData,employeeId,manager)",
+)
+
+pass

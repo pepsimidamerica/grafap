@@ -13,9 +13,13 @@ from grafap.auth import Decorators
 
 
 @Decorators.refresh_graph_token
-def get_users() -> dict:
+def get_ad_users(select: str = None, filter: str = None, expand: str = None) -> dict:
     """
-    Gets all users in a given tenant
+    Gets AD users in a given tenant
+
+    :param select: OData $select query option
+    :param filter: OData $filter query option
+    :param expand: OData $expand query option
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -44,8 +48,21 @@ def get_users() -> dict:
         else:
             return data["value"]
 
+    # Construct the query string
+    query_params = []
+    if select:
+        query_params.append(f"$select={select}")
+    if filter:
+        query_params.append(f"$filter={filter}")
+    if expand:
+        query_params.append(f"$expand={expand}")
+
+    query_string = "&".join(query_params)
+    base_url = "https://graph.microsoft.com/v1.0/users"
+    url = f"{base_url}?{query_string}" if query_string else base_url
+
     result = recurs_get(
-        "https://graph.microsoft.com/v1.0/" + "users",
+        url,
         headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
     )
 
