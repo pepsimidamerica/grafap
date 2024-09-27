@@ -2,7 +2,7 @@ import os
 
 import requests
 
-from grafap.auth import Decorators
+from grafap._auth import Decorators
 
 
 @Decorators.refresh_graph_token
