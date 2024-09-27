@@ -25,16 +25,20 @@ def get_ad_users(select: str = None, filter: str = None, expand: str = None) -> 
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
 
+    @_basic_retry
     def recurs_get(url, headers):
         """
         Recursive function to handle pagination
         """
-        response = requests.get(url, headers=headers, timeout=30)
-
-        if response.status_code != 200:
+        try:
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
             raise Exception(
-                f"Error {response.status_code}, could not get user data: {response.content}"
+                f"Error {e.response.status_code}, could not get user data: {e}"
             )
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Error, could not get user data: {e}")
 
         data = response.json()
 
@@ -77,21 +81,25 @@ def get_all_sp_users_info(site_id: str) -> dict:
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
 
+    @_basic_retry
     def recurs_get(url, headers, params=None):
         """
         Recursive function to handle pagination
         """
-        response = requests.get(
-            url,
-            headers=headers,
-            timeout=30,
-            params=params,
-        )
-
-        if response.status_code != 200:
-            raise Exception(
-                f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                timeout=30,
+                params=params,
             )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(
+                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
+            )
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Error, could not get sharepoint list data: {e}")
 
         data = response.json()
 
@@ -114,6 +122,7 @@ def get_all_sp_users_info(site_id: str) -> dict:
     return result
 
 
+@_basic_retry
 @Decorators._refresh_graph_token
 def get_sp_user_info(
     site_id: str, user_id: Optional[str], email: Optional[str]
@@ -137,19 +146,22 @@ def get_sp_user_info(
     elif email:
         url += "?$filter=fields/UserName eq '" + email + "'"
 
-    response = requests.get(
-        url,
-        headers={
-            "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
-            "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
-        },
-        timeout=30,
-    )
-
-    if response.status_code != 200:
-        raise Exception(
-            f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
+    try:
+        response = requests.get(
+            url,
+            headers={
+                "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
+                "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
+            },
+            timeout=30,
         )
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(
+            f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
+        )
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error, could not get sharepoint list data: {e}")
 
     if "value" in response.json():
         if len(response.json()["value"]) == 0:
