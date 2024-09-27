@@ -3,6 +3,7 @@ import os
 import requests
 
 from grafap._auth import Decorators
+from grafap._helpers import _basic_retry, _fetch_page
 
 
 @Decorators._refresh_graph_token
@@ -15,16 +16,20 @@ def get_sp_lists(site_id: str) -> dict:
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
 
+    @_basic_retry
     def recurs_get(url, headers):
         """
         Recursive function to handle pagination
         """
-        response = requests.get(url, headers=headers, timeout=30)
-
-        if response.status_code != 200:
+        try:
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
             raise Exception(
-                f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
+                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
             )
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Error, could not get sharepoint list data: {e}")
 
         data = response.json()
 
@@ -59,16 +64,20 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
 
+    @_basic_retry
     def recurs_get(url, headers):
         """
         Recursive function to handle pagination
         """
-        response = requests.get(url, headers=headers, timeout=30)
-
-        if response.status_code != 200:
+        try:
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
             raise Exception(
-                f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
+                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
             )
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Error, could not get sharepoint list data: {e}")
 
         data = response.json()
 
@@ -100,6 +109,7 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
     return result
 
 
+@_basic_retry
 @Decorators._refresh_graph_token
 def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
     """
@@ -121,19 +131,22 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
         + item_id
     )
 
-    response = requests.get(
-        url,
-        headers={
-            "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
-            "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
-        },
-        timeout=30,
-    )
-
-    if response.status_code != 200:
-        raise Exception(
-            f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
+    try:
+        response = requests.get(
+            url,
+            headers={
+                "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
+                "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
+            },
+            timeout=30,
         )
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(
+            f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
+        )
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error, could not get sharepoint list data: {e}")
 
     return response.json()
 
@@ -145,7 +158,8 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
 
     :param site_id: The site id to create the item in
     :param list_id: The list id to create the item in
-    :param field_data: A dictionary of field data to create the item with, recommended to pull a list of fields from the list first to get the correct field names
+    :param field_data: A dictionary of field data to create the item with, recommended
+    to pull a list of fields from the list first to get the correct field names
     """
     try:
         response = requests.post(
@@ -154,16 +168,18 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
             json={"fields": field_data},
             timeout=30,
         )
-        if response.status_code != 201:
-            raise Exception(
-                f"Error {response.status_code}, could not create item in sharepoint: {response.content}"
-            )
-    except Exception as e:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(
+            f"Error {e.response.status_code}, could not create item in sharepoint: {e}"
+        )
+    except requests.exceptions.RequestException as e:
         raise Exception(f"Error, could not create item in sharepoint: {e}")
 
     return response.json()
 
 
+@_basic_retry
 @Decorators._refresh_graph_token
 def delete_sp_item(site_id: str, list_id: str, item_id: str):
     """
@@ -184,11 +200,12 @@ def delete_sp_item(site_id: str, list_id: str, item_id: str):
             headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
             timeout=30,
         )
-        if response.status_code != 204:
-            raise Exception(
-                f"Error {response.status_code}, could not delete item in sharepoint: {response.content}"
-            )
-    except Exception as e:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(
+            f"Error {e.response.status_code}, could not delete item in sharepoint: {e}"
+        )
+    except requests.exceptions.RequestException as e:
         raise Exception(f"Error, could not delete item in sharepoint: {e}")
 
 
@@ -202,7 +219,8 @@ def update_sp_item(
     :param site_id: The site id to update the item in
     :param list_id: The list id to update the item in
     :param item_id: The id of the list item to update
-    :param field_data: A dictionary of field data to update the item with, only include fields you're updating. Recommended to pull a list of fields from the list first to get the correct field names
+    :param field_data: A dictionary of field data to update the item with, only
+    include fields you're updating. Recommended to pull a list of fields from the list first to get the correct field names
     """
     try:
         response = requests.patch(
@@ -217,11 +235,12 @@ def update_sp_item(
             json=field_data,
             timeout=30,
         )
-        if response.status_code != 200:
-            raise Exception(
-                f"Error {response.status_code}, could not update item in sharepoint: {response.content}"
-            )
-    except Exception as e:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(
+            f"Error {e.response.status_code}, could not update item in sharepoint: {e}"
+        )
+    except requests.exceptions.RequestException as e:
         raise Exception(f"Error, could not update item in sharepoint: {e}")
 
 
@@ -232,7 +251,7 @@ def get_list_attachments(
     """
     Gets attachments for a sharepoint list item. Returns as a list of
     dicts (if the given list item does have attachments) if download is False.
-    In other wirds, just downloading info about the attachments.
+    In other words, just downloading info about the attachments.
 
     Note: Uses the Sharepoint REST API, and not the Graph API.
 
@@ -247,21 +266,23 @@ def get_list_attachments(
     # Construct the URL for the ensure user endpoint
     url = f"{site_url}/_api/lists/getByTitle('{list_name}')/items({item_id})?$select=AttachmentFiles,Title&$expand=AttachmentFiles"
 
-    response = requests.get(
-        url,
-        headers={
-            "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-            "Accept": "application/json;odata=verbose;charset=utf-8",
-            "Content-Type": "application/json;odata=verbose;charset=utf-8",
-        },
-        timeout=30,
-    )
-
-    # Check for errors in the response
-    if response.status_code != 200:
-        raise Exception(
-            f"Error {response.status_code}, could not get list attachments: {response.content}"
+    try:
+        response = requests.get(
+            url,
+            headers={
+                "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+                "Accept": "application/json;odata=verbose;charset=utf-8",
+                "Content-Type": "application/json;odata=verbose;charset=utf-8",
+            },
+            timeout=30,
         )
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(
+            f"Error {e.response.status_code}, could not get list attachments: {e}"
+        )
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error, could not get list attachments: {e}")
 
     # Get the attachment data
     data = response.json().get("d", {})
@@ -273,33 +294,38 @@ def get_list_attachments(
             for x in attachments
         ]
 
-    downloaded_files = []
-
-    for attachment in attachments:
-
+    @_basic_retry
+    def download_attachment(attachment):
+        """
+        Helper function to download an attachment
+        """
         relative_url = attachment.get("ServerRelativeUrl")
-        attachment_response = requests.get(
-            f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')/$value",
-            headers={
-                "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-                "Accept": "application/json;odata=verbose;charset=utf-8",
-                "Content-Type": "application/json;odata=verbose;charset=utf-8",
-            },
-            timeout=30,
-        )
-
-        # Check for errors in the response
-        if attachment_response.status_code != 200:
-            raise Exception(
-                f"Error {attachment_response.status_code}, could not download attachment: {attachment_response.content}"
+        try:
+            attachment_response = requests.get(
+                f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')/$value",
+                headers={
+                    "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+                    "Accept": "application/json;odata=verbose;charset=utf-8",
+                    "Content-Type": "application/json;odata=verbose;charset=utf-8",
+                },
+                timeout=30,
             )
+            attachment_response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(
+                f"Error {e.response.status_code}, could not download attachment: {e}"
+            )
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Error, could not download attachment: {e}")
 
-        downloaded_files.append(
-            {
-                "name": attachment.get("FileName"),
-                "url": attachment.get("ServerRelativeUrl"),
-                "data": attachment_response.content,
-            }
-        )
+        return {
+            "name": attachment.get("FileName"),
+            "url": attachment.get("ServerRelativeUrl"),
+            "data": attachment_response.content,
+        }
+
+    downloaded_files = []
+    for attachment in attachments:
+        downloaded_files.append(download_attachment(attachment))
 
     return downloaded_files
