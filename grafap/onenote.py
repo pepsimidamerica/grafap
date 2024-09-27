@@ -16,7 +16,6 @@
 #     )
 
 #     if response.status_code != 200:
-#         print("Error, could not get user notebooks: ", response.content)
 #         raise Exception("Error, could not get user notebooks: " + str(response.content))
 
 #     return response.json()
@@ -43,7 +42,6 @@
 #     )
 
 #     if response.status_code != 200:
-#         print("Error, could not get notebook sections: ", response.content)
 #         raise Exception(
 #             "Error, could not get notebook sections: " + str(response.content)
 #         )
@@ -74,7 +72,6 @@
 #     )
 
 #     if response.status_code != 200:
-#         print("Error, could not get section pages: ", response.content)
 #         raise Exception("Error, could not get section pages: " + str(response.content))
 
 #     return response.json()

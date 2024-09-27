@@ -104,7 +104,7 @@ class Decorators:
             os.environ["GRAPH_BEARER_TOKEN"] = response.json()["access_token"]
         except Exception as e:
             raise Exception(
-                "Error, could not set OS env bearer token: " + str(response.content)
+                f"Error, could not set OS env bearer token: {response.content}"
             )
         try:
             expires_at = datetime.now() + timedelta(
@@ -114,8 +114,7 @@ class Decorators:
                 "%m/%d/%Y %H:%M:%S"
             )
         except Exception as e:
-            print("Error, could not set os env expires at: ", e)
-            raise Exception("Error, could not set os env expires at: " + str(e))
+            raise Exception(f"Error, could not set os env expires at: {e}")
 
     @staticmethod
     def _get_sp_token():
@@ -198,9 +197,7 @@ class Decorators:
         try:
             os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
         except Exception as e:
-            print("Error, could not set OS env bearer token: ", e)
-            print(response.content)
-            raise Exception("Error, could not set OS env bearer token: " + str(e))
+            raise Exception(f"Error, could not set OS env bearer token: {e}")
         try:
             expires_at = datetime.now() + timedelta(
                 seconds=float(response.json()["expires_in"])
@@ -209,5 +206,4 @@ class Decorators:
                 "%m/%d/%Y %H:%M:%S"
             )
         except Exception as e:
-            print("Error, could not set os env expires at: ", e)
-            raise Exception("Error, could not set os env expires at: " + str(e))
+            raise Exception(f"Error, could not set os env expires at: {e}")

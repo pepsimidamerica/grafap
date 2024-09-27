@@ -22,13 +22,8 @@ def get_sp_termstore_groups(site_id: str) -> dict:
     )
 
     if response.status_code != 200:
-        print(
-            f"Error {response.status_code}, could not get termstore groups: ",
-            response.content,
-        )
         raise Exception(
-            f"Error {response.status_code}, could not get termstore groups: "
-            + str(response.content)
+            f"Error {response.status_code}, could not get termstore groups: {response.content}"
         )
 
     return response.json()

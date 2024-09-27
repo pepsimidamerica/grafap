@@ -22,13 +22,8 @@ def get_sp_lists(site_id: str) -> dict:
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print(
-                f"Error {response.status_code}, could not get sharepoint list data: ",
-                response.content,
-            )
             raise Exception(
-                f"Error {response.status_code}, could not get sharepoint list data: "
-                + str(response.content)
+                f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
             )
 
         data = response.json()
@@ -71,13 +66,8 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print(
-                f"Error {response.status_code}, could not get sharepoint list data: ",
-                response.content,
-            )
             raise Exception(
-                f"Error {response.status_code}, could not get sharepoint list data: "
-                + str(response.content)
+                f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
             )
 
         data = response.json()
@@ -141,13 +131,8 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
     )
 
     if response.status_code != 200:
-        print(
-            f"Error {response.status_code}, could not get sharepoint list data: ",
-            response.content,
-        )
         raise Exception(
-            f"Error {response.status_code}, could not get sharepoint list data: "
-            + str(response.content)
+            f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
         )
 
     return response.json()
@@ -170,17 +155,11 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
             timeout=30,
         )
         if response.status_code != 201:
-            print(
-                f"Error {response.status_code}, could not create item in sharepoint: ",
-                response.content,
-            )
             raise Exception(
-                f"Error {response.status_code}, could not create item in sharepoint: "
-                + str(response.content)
+                f"Error {response.status_code}, could not create item in sharepoint: {response.content}"
             )
     except Exception as e:
-        print("Error, could not create item in sharepoint: ", e)
-        raise Exception("Error, could not create item in sharepoint: " + str(e))
+        raise Exception(f"Error, could not create item in sharepoint: {e}")
 
     return response.json()
 
@@ -206,17 +185,11 @@ def delete_sp_item(site_id: str, list_id: str, item_id: str):
             timeout=30,
         )
         if response.status_code != 204:
-            print(
-                f"Error {response.status_code}, could not delete item in sharepoint: ",
-                response.content,
-            )
             raise Exception(
-                f"Error {response.status_code}, could not delete item in sharepoint: "
-                + str(response.content)
+                f"Error {response.status_code}, could not delete item in sharepoint: {response.content}"
             )
     except Exception as e:
-        print("Error, could not delete item in sharepoint: ", e)
-        raise Exception("Error, could not delete item in sharepoint: " + str(e))
+        raise Exception(f"Error, could not delete item in sharepoint: {e}")
 
 
 @Decorators._refresh_graph_token
@@ -245,17 +218,11 @@ def update_sp_item(
             timeout=30,
         )
         if response.status_code != 200:
-            print(
-                f"Error {response.status_code}, could not update item in sharepoint: ",
-                response.content,
-            )
             raise Exception(
-                f"Error {response.status_code}, could not update item in sharepoint: "
-                + str(response.content)
+                f"Error {response.status_code}, could not update item in sharepoint: {response.content}"
             )
     except Exception as e:
-        print("Error, could not update item in sharepoint: ", e)
-        raise Exception("Error, could not update item in sharepoint: " + str(e))
+        raise Exception(f"Error, could not update item in sharepoint: {e}")
 
 
 @Decorators._refresh_sp_token
@@ -292,20 +259,13 @@ def get_list_attachments(
 
     # Check for errors in the response
     if response.status_code != 200:
-        print(
-            f"Error {response.status_code}, could not get list attachments: ",
-            response.content,
-        )
         raise Exception(
-            f"Error {response.status_code}, could not get list attachments: "
-            + str(response.content)
+            f"Error {response.status_code}, could not get list attachments: {response.content}"
         )
 
     # Get the attachment data
     data = response.json().get("d", {})
     attachments = data.get("AttachmentFiles", {}).get("results", [])
-
-    pass
 
     if not download:
         return [
@@ -330,13 +290,8 @@ def get_list_attachments(
 
         # Check for errors in the response
         if attachment_response.status_code != 200:
-            print(
-                f"Error {attachment_response.status_code}, could not download attachment: ",
-                attachment_response.content,
-            )
             raise Exception(
-                f"Error {attachment_response.status_code}, could not download attachment: "
-                + str(attachment_response.content)
+                f"Error {attachment_response.status_code}, could not download attachment: {attachment_response.content}"
             )
 
         downloaded_files.append(

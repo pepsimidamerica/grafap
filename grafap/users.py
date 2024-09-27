@@ -10,6 +10,7 @@ from typing import Optional
 import requests
 
 from grafap._auth import Decorators
+from grafap._helpers import _basic_retry, _fetch_page
 
 
 @Decorators._refresh_graph_token
@@ -31,13 +32,8 @@ def get_ad_users(select: str = None, filter: str = None, expand: str = None) -> 
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print(
-                f"Error {response.status_code}, could not get user data: ",
-                response.content,
-            )
             raise Exception(
-                f"Error {response.status_code}, could not get user data: "
-                + str(response.content)
+                f"Error {response.status_code}, could not get user data: {response.content}"
             )
 
         data = response.json()
@@ -93,13 +89,8 @@ def get_all_sp_users_info(site_id: str) -> dict:
         )
 
         if response.status_code != 200:
-            print(
-                f"Error {response.status_code}, could not get sharepoint list data: ",
-                response.content,
-            )
             raise Exception(
-                f"Error {response.status_code}, could not get sharepoint list data: "
-                + str(response.content)
+                f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
             )
 
         data = response.json()
@@ -156,13 +147,8 @@ def get_sp_user_info(
     )
 
     if response.status_code != 200:
-        print(
-            f"Error {response.status_code}, could not get sharepoint list data: ",
-            response.content,
-        )
         raise Exception(
-            f"Error {response.status_code}, could not get sharepoint list data: "
-            + str(response.content)
+            f"Error {response.status_code}, could not get sharepoint list data: {response.content}"
         )
 
     if "value" in response.json():
@@ -189,8 +175,6 @@ def get_sp_user_info(
 #     response = requests.get(url, headers=headers, timeout=30)
 
 #     if response.status_code != 200:
-#         print("Status Code: ", response.status_code)
-#         print("Error, could not get site user data: ", response.content)
 #         raise Exception("Error, could not get site user data: " + str(response.content))
 
 
@@ -227,12 +211,8 @@ def ensure_sp_user(site_url: str, logon_name: str) -> dict:
 
     # Check for errors in the response
     if response.status_code != 200:
-        print(
-            f"Error {response.status_code}, could not ensure user: ", response.content
-        )
         raise Exception(
-            f"Error {response.status_code}, could not ensure user: "
-            + str(response.content)
+            f"Error {response.status_code}, could not ensure user: {response.content}"
         )
 
     # Return the JSON response

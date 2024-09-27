@@ -20,13 +20,8 @@ def get_sp_sites() -> dict:
         response = requests.get(url, headers=headers, timeout=30)
 
         if response.status_code != 200:
-            print(
-                f"Error {response.status_code}, could not get sharepoint site data: ",
-                response.content,
-            )
             raise Exception(
-                f"Error {response.status_code}, could not get sharepoint site data: "
-                + str(response.content)
+                f"Error {response.status_code}, could not get sharepoint site data: {response.content}"
             )
 
         data = response.json()
