@@ -12,7 +12,7 @@ import requests
 from grafap._auth import Decorators
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def get_ad_users(select: str = None, filter: str = None, expand: str = None) -> dict:
     """
     Gets AD users in a given tenant
@@ -69,7 +69,7 @@ def get_ad_users(select: str = None, filter: str = None, expand: str = None) -> 
     return result
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def get_all_sp_users_info(site_id: str) -> dict:
     """
     Query the hidden sharepoint list that contains user information
@@ -123,7 +123,7 @@ def get_all_sp_users_info(site_id: str) -> dict:
     return result
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def get_sp_user_info(
     site_id: str, user_id: Optional[str], email: Optional[str]
 ) -> dict:
@@ -194,7 +194,7 @@ def get_sp_user_info(
 #         raise Exception("Error, could not get site user data: " + str(response.content))
 
 
-@Decorators.refresh_sp_token
+@Decorators._refresh_sp_token
 def ensure_sp_user(site_url: str, logon_name: str) -> dict:
     """
     Users sharepoint REST API, not MS Graph API. Endpoint is only available

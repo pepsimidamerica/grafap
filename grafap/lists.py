@@ -5,7 +5,7 @@ import requests
 from grafap._auth import Decorators
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def get_sp_lists(site_id: str) -> dict:
     """
     Gets all lists in a given site
@@ -47,7 +47,7 @@ def get_sp_lists(site_id: str) -> dict:
     return result
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> dict:
     """
     Gets field data from a sharepoint list
@@ -110,7 +110,7 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
     return result
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
     """
     Gets field data from a specific sharepoint list item
@@ -153,7 +153,7 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
     return response.json()
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
     """
     Create a new item in SharePoint
@@ -185,7 +185,7 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
     return response.json()
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def delete_sp_item(site_id: str, list_id: str, item_id: str):
     """
     Delete an item in SharePoint
@@ -219,7 +219,7 @@ def delete_sp_item(site_id: str, list_id: str, item_id: str):
         raise Exception("Error, could not delete item in sharepoint: " + str(e))
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def update_sp_item(
     site_id: str, list_id: str, item_id: str, field_data: dict[str, str]
 ):
@@ -258,7 +258,7 @@ def update_sp_item(
         raise Exception("Error, could not update item in sharepoint: " + str(e))
 
 
-@Decorators.refresh_sp_token
+@Decorators._refresh_sp_token
 def get_list_attachments(
     site_url: str, list_name: str, item_id: int, download: bool = False
 ) -> list[dict]:

@@ -19,7 +19,7 @@ class Decorators:
     """
 
     @staticmethod
-    def refresh_graph_token(decorated):
+    def _refresh_graph_token(decorated):
         """
         Decorator to refresh the graph access token if it has expired
         """
@@ -36,14 +36,14 @@ class Decorators:
                 "GRAPH_BEARER_TOKEN" not in os.environ
                 or datetime.strptime(expires_at, "%m/%d/%Y %H:%M:%S") < datetime.now()
             ):
-                Decorators.get_graph_token()
+                Decorators._get_graph_token()
             return decorated(*args, **kwargs)
 
         wrapper.__name__ = decorated.__name__
         return wrapper
 
     @staticmethod
-    def refresh_sp_token(decorated):
+    def _refresh_sp_token(decorated):
         """
         Decorator to refresh the sharepoint rest API access token if it has expired
         """
@@ -60,14 +60,14 @@ class Decorators:
                 "SP_BEARER_TOKEN" not in os.environ
                 or datetime.strptime(expires_at, "%m/%d/%Y %H:%M:%S") < datetime.now()
             ):
-                Decorators.get_sp_token()
+                Decorators._get_sp_token()
             return decorated(*args, **kwargs)
 
         wrapper.__name__ = decorated.__name__
         return wrapper
 
     @staticmethod
-    def get_graph_token():
+    def _get_graph_token():
         """
         Get Microsoft Graph bearer token
         """
@@ -118,7 +118,7 @@ class Decorators:
             raise Exception("Error, could not set os env expires at: " + str(e))
 
     @staticmethod
-    def get_sp_token():
+    def _get_sp_token():
         """
         Gets Sharepoint Rest API bearer token.
         """

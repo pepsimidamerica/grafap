@@ -5,7 +5,7 @@ import requests
 from grafap._auth import Decorators
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def get_sp_termstore_groups(site_id: str) -> dict:
     """
     Lists all termstore group objects in a site

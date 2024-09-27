@@ -5,7 +5,7 @@ import requests
 from grafap._auth import Decorators
 
 
-@Decorators.refresh_graph_token
+@Decorators._refresh_graph_token
 def get_sp_sites() -> dict:
     """
     Gets all site data in a given tenant
