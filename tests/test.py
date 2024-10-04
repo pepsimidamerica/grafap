@@ -14,15 +14,23 @@ from grafap import *
 
 # SharePoint Sites
 
-sites = grafap.get_sp_sites()
+# sites = grafap.get_sp_sites()
 
 pass
 
 # # SharePoint Lists
 
-lists = grafap.get_sp_lists(sites[0]["id"])
-list_items = grafap.get_sp_list_items(sites[0]["id"], lists[0]["id"])
-list_item = grafap.get_sp_list_item(sites[0]["id"], lists[0]["id"], list_items[0]["id"])
+# lists = grafap.get_sp_lists(sites[0]["id"])
+# list_items = grafap.get_sp_list_items(sites[0]["id"], lists[0]["id"])
+# list_item = grafap.get_sp_list_item(sites[0]["id"], lists[0]["id"], list_items[0]["id"])
+
+grafap.grant_permission_to_sp_list_item(
+    "https://pepsimidamerica.sharepoint.com/sites/PepsiMidAmericaInternalAccess",
+    "Management Daily Reports",
+    1,
+    "armanager@pepsimidamerica.com",
+    "Read",
+)
 
 pass
 

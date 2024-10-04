@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 
 import requests
 
@@ -329,3 +330,56 @@ def get_list_attachments(
         downloaded_files.append(download_attachment(attachment))
 
     return downloaded_files
+
+
+@Decorators._refresh_sp_token
+def grant_permission_to_sp_list_item(
+    site_url: str,
+    list_name: str,
+    item_id: int,
+    user_email: str,
+    role: Literal["Read", "Contribute", "Edit", "Full Control", "Design"],
+) -> dict:
+    """
+    Grants permission to a user for a SharePoint list item using SharePoint REST API.
+
+    :param site_url: The URL of the SharePoint site
+    :param list_name: The name of the SharePoint list
+    :param item_id: The ID of the list item
+    :param user_email: The email of the user to grant permission to
+    :param role: The role to grant (read, write)
+    """
+    if "SP_BEARER_TOKEN" not in os.environ:
+        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
+
+    headers = {
+        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+        "Accept": "application/json;odata=verbose",
+        "Content-Type": "application/json;odata=verbose",
+    }
+
+    # Step 1: Break role inheritance
+    break_role_inheritance_url = f"{site_url}/_api/web/lists/getByTitle('{list_name}')/items({item_id})/breakroleinheritance(copyRoleAssignments=true, clearSubscopes=false)"
+    response = requests.post(break_role_inheritance_url, headers=headers)
+    response.raise_for_status()
+
+    # Step 2: Get user ID
+    user_url = f"{site_url}/_api/web/siteusers/getByEmail('{user_email}')"
+    response = requests.get(user_url, headers=headers)
+    response.raise_for_status()
+    user_id = response.json()["d"]["Id"]
+
+    # Step 3: Get role definition ID
+    role_def_url = (
+        f"{site_url}/_api/web/roledefinitions/getbyname('{role.capitalize()}')"
+    )
+    response = requests.get(role_def_url, headers=headers)
+    response.raise_for_status()
+    role_def_id = response.json()["d"]["Id"]
+
+    # Step 4: Add role assignment
+    role_assignment_url = f"{site_url}/_api/web/lists/getByTitle('{list_name}')/items({item_id})/roleassignments/addroleassignment(principalid={user_id}, roledefid={role_def_id})"
+    response = requests.post(role_assignment_url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
