@@ -1,4 +1,5 @@
 import os
+from typing import Any, Dict, Literal
 
 import requests
 
@@ -211,7 +212,7 @@ def delete_sp_item(site_id: str, list_id: str, item_id: str):
 
 @Decorators._refresh_graph_token
 def update_sp_item(
-    site_id: str, list_id: str, item_id: str, field_data: dict[str, str]
+    site_id: str, list_id: str, item_id: str, field_data: Dict[str, Any]
 ):
     """
     Update an item in SharePoint
