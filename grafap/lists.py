@@ -1,5 +1,6 @@
 import os
 from typing import Any, Dict, Literal
+from urllib.parse import urlparse
 
 import requests
 
@@ -330,3 +331,48 @@ def get_list_attachments(
         downloaded_files.append(download_attachment(attachment))
 
     return downloaded_files
+
+
+@Decorators._refresh_sp_token
+def get_file(file_url: str) -> dict:
+    """
+    Downloads a file from a SharePoint site, likely stored in a document library.
+
+    :param file_url: The direct URL to the file in the SharePoint document library
+    :return: A dictionary containing the file name, URL, and file content
+    """
+    if "SP_BEARER_TOKEN" not in os.environ:
+        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
+
+    headers = {
+        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+        "Accept": "application/json;odata=verbose;charset=utf-8",
+        "Content-Type": "application/json;odata=verbose;charset=utf-8",
+    }
+
+    # Parse the file URL to get the site URL and relative URL
+    parsed_url = urlparse(file_url)
+    path_parts = parsed_url.path.split("/")
+    site_path = "/".join(path_parts[:3])  # This will include the site path
+    relative_url = "/".join(path_parts[3:])  # This will include the rest of the path
+
+    site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
+
+    print(f"Site URL: {site_url}")
+    print(f"Relative URL: {relative_url}")
+
+    try:
+        response = requests.get(
+            f"{site_url}/_api/Web/GetFileByUrl(@url)?@url='{file_url}'",
+            headers=headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(f"Error {e.response.status_code}, could not download file: {e}")
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error, could not download file: {e}")
+
+    file_name = relative_url.split("/")[-1]
+
+    return {"name": file_name, "url": file_url, "data": response.content}
