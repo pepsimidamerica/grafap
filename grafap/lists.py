@@ -360,7 +360,7 @@ def get_file(file_url: str) -> dict:
 
     try:
         response = requests.get(
-            f"{site_url}/_api/Web/GetFileByUrl(@url)?@url='{file_url}'",
+            f"{site_url}/_api/Web/GetFileByUrl(@url)/$value?@url='{file_url}'",
             headers=headers,
             timeout=30,
         )
