@@ -358,9 +358,6 @@ def get_file(file_url: str) -> dict:
 
     site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
 
-    print(f"Site URL: {site_url}")
-    print(f"Relative URL: {relative_url}")
-
     try:
         response = requests.get(
             f"{site_url}/_api/Web/GetFileByUrl(@url)?@url='{file_url}'",
@@ -376,3 +373,43 @@ def get_file(file_url: str) -> dict:
     file_name = relative_url.split("/")[-1]
 
     return {"name": file_name, "url": file_url, "data": response.content}
+
+
+@Decorators._refresh_sp_token
+def delete_file(file_url: str):
+    """
+    Deletes a file from a SharePoint site, likley stored in a document library.
+
+    :param file_url: The direct URL to the file in the SharePoint document library
+    """
+    if "SP_BEARER_TOKEN" not in os.environ:
+        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
+
+    headers = {
+        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+        "Accept": "application/json;odata=verbose;charset=utf-8",
+        "Content-Type": "application/json;odata=verbose;charset=utf-8",
+    }
+
+    # Parse the file URL to get the site URL and relative URL
+    parsed_url = urlparse(file_url)
+    path_parts = parsed_url.path.split("/")
+    site_path = "/".join(path_parts[:3])
+    relative_url = "/".join(path_parts[3:])  # This will include the rest of the path
+
+    site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
+
+    try:
+        response = requests.delete(
+            # f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')",
+            f"{site_url}/_api/Web/GetFileByUrl(@url)?@url='{file_url}'",
+            headers=headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(f"Error {e.response.status_code}, could not delete file: {e}")
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error, could not delete file: {e}")
+
+    return None

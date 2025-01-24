@@ -69,6 +69,10 @@ from grafap import *
 #     "FULL FILE URL",
 # )
 
+# grafap.delete_file(
+#     "FULL FILE URL",
+# )
+
 pass
 
 # AD Users
