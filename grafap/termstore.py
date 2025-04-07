@@ -28,6 +28,8 @@ def get_sp_termstore_groups(site_id: str) -> dict:
         raise Exception(
             f"Error {e.response.status_code}, could not get termstore groups: {e}"
         )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        raise
     except requests.exceptions.RequestException as e:
         raise Exception(f"Error, could not get termstore groups: {e}")
 

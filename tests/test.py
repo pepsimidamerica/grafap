@@ -14,7 +14,7 @@ from grafap import *
 
 # SharePoint Sites
 
-# sites = grafap.get_sp_sites()
+sites = grafap.get_sp_sites()
 
 # SharePoint Lists
 

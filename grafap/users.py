@@ -10,7 +10,7 @@ from typing import Optional
 import requests
 
 from grafap._auth import Decorators
-from grafap._helpers import _basic_retry, _fetch_page
+from grafap._helpers import _basic_retry
 
 
 @Decorators._refresh_graph_token
@@ -37,6 +37,8 @@ def get_ad_users(select: str = None, filter: str = None, expand: str = None) -> 
             raise Exception(
                 f"Error {e.response.status_code}, could not get user data: {e}"
             )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            raise
         except requests.exceptions.RequestException as e:
             raise Exception(f"Error, could not get user data: {e}")
 
@@ -98,6 +100,8 @@ def get_all_sp_users_info(site_id: str) -> dict:
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
             )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            raise
         except requests.exceptions.RequestException as e:
             raise Exception(f"Error, could not get sharepoint list data: {e}")
 
@@ -160,6 +164,8 @@ def get_sp_user_info(
         raise Exception(
             f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
         )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        raise
     except requests.exceptions.RequestException as e:
         raise Exception(f"Error, could not get sharepoint list data: {e}")
 

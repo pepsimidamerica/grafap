@@ -26,6 +26,8 @@ def get_sp_sites() -> dict:
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint site data: {e}"
             )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            raise
         except requests.exceptions.RequestException as e:
             raise Exception(f"Error, could not get sharepoint site data: {e}")
 

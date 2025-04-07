@@ -1,11 +1,11 @@
 import os
-from typing import Any, Dict, Literal
+from typing import Any, Dict
 from urllib.parse import urlparse
 
 import requests
 
 from grafap._auth import Decorators
-from grafap._helpers import _basic_retry, _fetch_page
+from grafap._helpers import _basic_retry
 
 
 @Decorators._refresh_graph_token
@@ -30,6 +30,8 @@ def get_sp_lists(site_id: str) -> dict:
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
             )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            raise
         except requests.exceptions.RequestException as e:
             raise Exception(f"Error, could not get sharepoint list data: {e}")
 
@@ -78,6 +80,8 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
             )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            raise
         except requests.exceptions.RequestException as e:
             raise Exception(f"Error, could not get sharepoint list data: {e}")
 
@@ -147,6 +151,8 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
         raise Exception(
             f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
         )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        raise
     except requests.exceptions.RequestException as e:
         raise Exception(f"Error, could not get sharepoint list data: {e}")
 
@@ -207,10 +213,13 @@ def delete_sp_item(site_id: str, list_id: str, item_id: str):
         raise Exception(
             f"Error {e.response.status_code}, could not delete item in sharepoint: {e}"
         )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        raise
     except requests.exceptions.RequestException as e:
         raise Exception(f"Error, could not delete item in sharepoint: {e}")
 
 
+@_basic_retry
 @Decorators._refresh_graph_token
 def update_sp_item(
     site_id: str, list_id: str, item_id: str, field_data: Dict[str, Any]
@@ -242,6 +251,8 @@ def update_sp_item(
         raise Exception(
             f"Error {e.response.status_code}, could not update item in sharepoint: {e}"
         )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        raise
     except requests.exceptions.RequestException as e:
         raise Exception(f"Error, could not update item in sharepoint: {e}")
 
