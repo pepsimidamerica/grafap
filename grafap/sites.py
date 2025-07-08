@@ -1,9 +1,11 @@
+import logging
 import os
 
 import requests
-
 from grafap._auth import Decorators
 from grafap._helpers import _basic_retry
+
+logger = logging.getLogger(__name__)
 
 
 @Decorators._refresh_graph_token
@@ -23,12 +25,17 @@ def get_sp_sites() -> dict:
             response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get sharepoint site data: {e}"
+            )
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint site data: {e}"
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Error, could not connect to sharepoint site data: {e}")
             raise
         except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get sharepoint site data: {e}")
             raise Exception(f"Error, could not get sharepoint site data: {e}")
 
         data = response.json()
