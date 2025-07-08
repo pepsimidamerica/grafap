@@ -1,3 +1,8 @@
+"""
+The auth module provides decorators for refreshing graph/sharepoint
+access tokens. Only used internally by grafap.
+"""
+
 import base64
 import hashlib
 import logging

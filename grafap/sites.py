@@ -1,3 +1,9 @@
+"""
+The sites module provides functions for getting data on the high-level sharepoint
+site structure of a given tenant. Needed to retrieve a given site ID for
+lower-level operations.
+"""
+
 import logging
 import os
 

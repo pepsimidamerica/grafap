@@ -1,3 +1,7 @@
+"""
+The onenote module provides functions to interact with Microsoft OneNote
+"""
+
 # # @Decorators.refresh_graph_token_delegated
 # def get_user_notebooks():
 #     """

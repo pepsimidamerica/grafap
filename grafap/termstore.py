@@ -1,3 +1,8 @@
+"""
+The termstore module provides function to interact with a sharepoint site's
+termstore groups, which are used to manage metadata in sharepoint.
+"""
+
 import logging
 import os
 

@@ -1,5 +1,5 @@
 """
-Helper functions for ezoff
+This module is used to define tenacity retry mechanisms for HTTP requests.
 """
 
 import requests

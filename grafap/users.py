@@ -1,5 +1,5 @@
 """
-This module contains functions for interacting with users in MS Graph, both
+The users module contains functions for interacting with users in MS Graph, both
 actual users and also the site-specific users that are stored in a hidden
 sharepoint list.
 """
