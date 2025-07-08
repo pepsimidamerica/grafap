@@ -10,11 +10,11 @@ load_dotenv()
 
 sys.path.insert(0, "")
 
-from grafap import *
+from grafap import get_sp_sites
 
 # SharePoint Sites
 
-sites = grafap.get_sp_sites()
+sites = get_sp_sites()
 
 # SharePoint Lists
 
