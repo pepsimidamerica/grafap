@@ -4,17 +4,21 @@ actual users and also the site-specific users that are stored in a hidden
 sharepoint list.
 """
 
+import logging
 import os
 from typing import Optional
 
 import requests
-
 from grafap._auth import Decorators
 from grafap._helpers import _basic_retry
 
+logger = logging.getLogger(__name__)
+
 
 @Decorators._refresh_graph_token
-def get_ad_users(select: str = None, filter: str = None, expand: str = None) -> dict:
+def get_ad_users(
+    select: str | None = None, filter: str | None = None, expand: str | None = None
+) -> dict:
     """
     Gets AD users in a given tenant
 
@@ -34,12 +38,17 @@ def get_ad_users(select: str = None, filter: str = None, expand: str = None) -> 
             response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get user data: {e}"
+            )
             raise Exception(
                 f"Error {e.response.status_code}, could not get user data: {e}"
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Error, could not connect to user data: {e}")
             raise
         except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get user data: {e}")
             raise Exception(f"Error, could not get user data: {e}")
 
         data = response.json()
@@ -97,12 +106,17 @@ def get_all_sp_users_info(site_id: str) -> dict:
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
+            )
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Error, could not connect to sharepoint list data: {e}")
             raise
         except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get sharepoint list data: {e}")
             raise Exception(f"Error, could not get sharepoint list data: {e}")
 
         data = response.json()
@@ -161,12 +175,17 @@ def get_sp_user_info(
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        logger.error(
+            f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
+        )
         raise Exception(
             f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
         )
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        logger.error(f"Error, could not connect to sharepoint list data: {e}")
         raise
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not get sharepoint list data: {e}")
         raise Exception(f"Error, could not get sharepoint list data: {e}")
 
     if "value" in response.json():
@@ -215,20 +234,32 @@ def ensure_sp_user(site_url: str, logon_name: str) -> dict:
     # Construct the URL for the ensure user endpoint
     url = f"{site_url}/_api/web/ensureuser"
 
-    # Make the POST request
-    response = requests.post(
-        url,
-        headers={
-            "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-            "Accept": "application/json;odata=verbose;charset=utf-8",
-            "Content-Type": "application/json;odata=verbose;charset=utf-8",
-        },
-        json={"logonName": logon_name},
-        timeout=30,
-    )
+    try:
+        response = requests.post(
+            url,
+            headers={
+                "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
+                "Accept": "application/json;odata=verbose;charset=utf-8",
+                "Content-Type": "application/json;odata=verbose;charset=utf-8",
+            },
+            json={"logonName": logon_name},
+            timeout=30,
+        )
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Error {e.response.status_code}, could not ensure user: {e}")
+        raise Exception(f"Error {e.response.status_code}, could not ensure user: {e}")
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        logger.error(f"Error, could not connect to ensure user: {e}")
+        raise
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not ensure user: {e}")
+        raise Exception(f"Error, could not ensure user: {e}")
 
     # Check for errors in the response
     if response.status_code != 200:
+        logger.error(
+            f"Error {response.status_code}, could not ensure user: {response.content}"
+        )
         raise Exception(
             f"Error {response.status_code}, could not ensure user: {response.content}"
         )
