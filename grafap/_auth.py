@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import logging
 import os
 import time
 import uuid
@@ -10,6 +11,8 @@ import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, pkcs12
 from OpenSSL import crypto
+
+logger = logging.getLogger(__name__)
 
 
 class Decorators:
@@ -83,26 +86,46 @@ class Decorators:
             raise Exception("Error, could not find GRAPH_GRANT_TYPE in env")
         if "GRAPH_SCOPES" not in os.environ:
             raise Exception("Error, could not find GRAPH_SCOPES in env")
+
+        logger.info("Getting Microsoft Graph bearer token...")
+
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        response = requests.post(
-            os.environ["GRAPH_LOGIN_BASE_URL"]
-            + os.environ["GRAPH_TENANT_ID"]
-            + "/oauth2/v2.0/token",
-            headers=headers,
-            data={
-                "client_id": os.environ["GRAPH_CLIENT_ID"],
-                "client_secret": os.environ["GRAPH_CLIENT_SECRET"],
-                "grant_type": os.environ["GRAPH_GRANT_TYPE"],
-                "scope": os.environ["GRAPH_SCOPES"],
-            },
-            timeout=30,
-        )
+
+        try:
+            response = requests.post(
+                os.environ["GRAPH_LOGIN_BASE_URL"]
+                + os.environ["GRAPH_TENANT_ID"]
+                + "/oauth2/v2.0/token",
+                headers=headers,
+                data={
+                    "client_id": os.environ["GRAPH_CLIENT_ID"],
+                    "client_secret": os.environ["GRAPH_CLIENT_SECRET"],
+                    "grant_type": os.environ["GRAPH_GRANT_TYPE"],
+                    "scope": os.environ["GRAPH_SCOPES"],
+                },
+                timeout=30,
+            )
+        except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get graph token: {e}"
+            )
+            raise Exception(
+                f"Error {e.response.status_code}, could not get graph token: {e}"
+            )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Error, could not connect to graph token: {e}")
+            raise
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get graph token: {e}")
+            raise Exception(f"Error, could not get graph token: {e}")
+
         try:
             os.environ["GRAPH_BEARER_TOKEN"] = response.json()["access_token"]
         except Exception as e:
+            logger.error(f"Error, could not set OS env bearer token: {e}")
             raise Exception(
                 f"Error, could not set OS env bearer token: {response.content}"
             )
@@ -114,6 +137,7 @@ class Decorators:
                 "%m/%d/%Y %H:%M:%S"
             )
         except Exception as e:
+            logger.error(f"Error, could not set os env expires at: {e}")
             raise Exception(f"Error, could not set os env expires at: {e}")
 
     @staticmethod
@@ -137,6 +161,8 @@ class Decorators:
             raise Exception("Error, could not find SP_GRANT_TYPE in env")
         if "SP_SITE" not in os.environ:
             raise Exception("Error, could not find SP_SITE in env")
+
+        logger.info("Getting Sharepoint Rest API bearer token...")
 
         # Load the certificate
         with open(os.environ["SP_CERTIFICATE_PATH"], "rb") as cert_file:
@@ -179,24 +205,39 @@ class Decorators:
             payload, private_key_pem, algorithm="RS256", headers=headers
         )
 
-        response = requests.post(
-            os.environ["SP_LOGIN_BASE_URL"]
-            + os.environ["SP_TENANT_ID"]
-            + "/oauth2/v2.0/token",
-            headers=headers,
-            data={
-                "client_id": os.environ["SP_CLIENT_ID"],
-                "grant_type": os.environ["SP_GRANT_TYPE"],
-                "scope": os.environ["SP_SCOPES"],
-                "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-                "client_assertion": jwt_assertion,
-            },
-            timeout=30,
-        )
+        try:
+            response = requests.post(
+                os.environ["SP_LOGIN_BASE_URL"]
+                + os.environ["SP_TENANT_ID"]
+                + "/oauth2/v2.0/token",
+                headers=headers,
+                data={
+                    "client_id": os.environ["SP_CLIENT_ID"],
+                    "grant_type": os.environ["SP_GRANT_TYPE"],
+                    "scope": os.environ["SP_SCOPES"],
+                    "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+                    "client_assertion": jwt_assertion,
+                },
+                timeout=30,
+            )
+        except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get graph token: {e}"
+            )
+            raise Exception(
+                f"Error {e.response.status_code}, could not get graph token: {e}"
+            )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Error, could not connect to graph token: {e}")
+            raise
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get graph token: {e}")
+            raise Exception(f"Error, could not get graph token: {e}")
 
         try:
             os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
         except Exception as e:
+            logger.error(f"Error, could not set OS env bearer token: {e}")
             raise Exception(f"Error, could not set OS env bearer token: {e}")
         try:
             expires_at = datetime.now() + timedelta(
@@ -206,4 +247,5 @@ class Decorators:
                 "%m/%d/%Y %H:%M:%S"
             )
         except Exception as e:
+            logger.error(f"Error, could not set os env expires at: {e}")
             raise Exception(f"Error, could not set os env expires at: {e}")
