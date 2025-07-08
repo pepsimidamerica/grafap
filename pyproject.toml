@@ -27,7 +27,7 @@ requires = ["uv_build>=0.7.7,<0.8"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "clope"
+module-name = "grafap"
 module-root = ""
 
 [dependency-groups]
