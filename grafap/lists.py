@@ -1,11 +1,19 @@
+"""
+The lists module deals with interacting with sharepoint lists and attachments
+on these lists. It provides standard functions for getting, creating, updating,
+and deleting item data.
+"""
+
+import logging
 import os
 from typing import Any, Dict
 from urllib.parse import urlparse
 
 import requests
-
 from grafap._auth import Decorators
 from grafap._helpers import _basic_retry
+
+logger = logging.getLogger(__name__)
 
 
 @Decorators._refresh_graph_token
@@ -27,12 +35,17 @@ def get_sp_lists(site_id: str) -> dict:
             response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
+            )
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Error, could not connect to sharepoint: {e}")
             raise
         except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get sharepoint list data: {e}")
             raise Exception(f"Error, could not get sharepoint list data: {e}")
 
         data = response.json()
@@ -52,7 +65,9 @@ def get_sp_lists(site_id: str) -> dict:
 
 
 @Decorators._refresh_graph_token
-def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> dict:
+def get_sp_list_items(
+    site_id: str, list_id: str, filter_query: str | None = None
+) -> dict:
     """
     Gets field data from a sharepoint list
 
@@ -77,12 +92,17 @@ def get_sp_list_items(site_id: str, list_id: str, filter_query: str = None) -> d
             response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
+            )
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Error, could not connect to sharepoint: {e}")
             raise
         except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get sharepoint list data: {e}")
             raise Exception(f"Error, could not get sharepoint list data: {e}")
 
         data = response.json()
@@ -148,12 +168,17 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        logger.error(
+            f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
+        )
         raise Exception(
             f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
         )
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        logger.error(f"Error, could not connect to sharepoint: {e}")
         raise
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not get sharepoint list data: {e}")
         raise Exception(f"Error, could not get sharepoint list data: {e}")
 
     return response.json()
@@ -178,10 +203,14 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        logger.error(
+            f"Error {e.response.status_code}, could not create item in sharepoint: {e}"
+        )
         raise Exception(
             f"Error {e.response.status_code}, could not create item in sharepoint: {e}"
         )
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not create item in sharepoint: {e}")
         raise Exception(f"Error, could not create item in sharepoint: {e}")
 
     return response.json()
@@ -210,12 +239,17 @@ def delete_sp_item(site_id: str, list_id: str, item_id: str):
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        logger.error(
+            f"Error {e.response.status_code}, could not delete item in sharepoint: {e}"
+        )
         raise Exception(
             f"Error {e.response.status_code}, could not delete item in sharepoint: {e}"
         )
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        logger.error(f"Error, could not connect to sharepoint: {e}")
         raise
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not delete item in sharepoint: {e}")
         raise Exception(f"Error, could not delete item in sharepoint: {e}")
 
 
@@ -248,12 +282,17 @@ def update_sp_item(
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        logger.error(
+            f"Error {e.response.status_code}, could not update item in sharepoint: {e}"
+        )
         raise Exception(
             f"Error {e.response.status_code}, could not update item in sharepoint: {e}"
         )
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        logger.error(f"Error, could not connect to sharepoint: {e}")
         raise
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not update item in sharepoint: {e}")
         raise Exception(f"Error, could not update item in sharepoint: {e}")
 
 
@@ -291,10 +330,14 @@ def get_list_attachments(
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        logger.error(
+            f"Error {e.response.status_code}, could not get list attachments: {e}"
+        )
         raise Exception(
             f"Error {e.response.status_code}, could not get list attachments: {e}"
         )
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not get list attachments: {e}")
         raise Exception(f"Error, could not get list attachments: {e}")
 
     # Get the attachment data
@@ -325,10 +368,14 @@ def get_list_attachments(
             )
             attachment_response.raise_for_status()
         except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not download attachment: {e}"
+            )
             raise Exception(
                 f"Error {e.response.status_code}, could not download attachment: {e}"
             )
         except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not download attachment: {e}")
             raise Exception(f"Error, could not download attachment: {e}")
 
         return {
@@ -377,8 +424,10 @@ def get_file(file_url: str) -> dict:
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        logger.error(f"Error {e.response.status_code}, could not download file: {e}")
         raise Exception(f"Error {e.response.status_code}, could not download file: {e}")
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not download file: {e}")
         raise Exception(f"Error, could not download file: {e}")
 
     file_name = relative_url.split("/")[-1]
@@ -419,8 +468,10 @@ def delete_file(file_url: str):
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        logger.error(f"Error {e.response.status_code}, could not delete file: {e}")
         raise Exception(f"Error {e.response.status_code}, could not delete file: {e}")
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error, could not delete file: {e}")
         raise Exception(f"Error, could not delete file: {e}")
 
     return None
