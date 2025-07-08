@@ -1,5 +1,0 @@
-requests
-pyopenssl
-pyjwt
-cryptography
-tenacity
