@@ -1,10 +1,10 @@
 [project]
 name = "grafap"
-version = "0.1.12"
+version = "0.1.13"
 description = "Python package that acts as a wrapper for the Microsoft Graph API."
 readme = "README.md"
 authors = [{ name = "Jordan Maynor", email = "jmaynor@pepsimidamerica.com" }]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "cryptography>=45.0.5",
     "pyjwt>=2.10.1",

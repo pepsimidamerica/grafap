@@ -66,7 +66,7 @@ def get_sp_lists(site_id: str) -> dict:
 
 @Decorators._refresh_graph_token
 def get_sp_list_items(
-    site_id: str, list_id: str, filter_query: str | None = None
+    site_id: str, list_id: str, filter_query: str | None = None, select_query: str | None = None
 ) -> dict:
     """
     Gets field data from a sharepoint list
@@ -118,8 +118,13 @@ def get_sp_list_items(
         + site_id
         + "/lists/"
         + list_id
-        + "/items?expand=fields"
+        + '/items/'
     )
+
+    if select_query:
+        url += f'?expand=fields($select={select_query})'
+    else:
+        url += '?expand=fields'
 
     if filter_query:
         url += "&$filter=" + filter_query
