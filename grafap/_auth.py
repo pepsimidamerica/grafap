@@ -130,9 +130,11 @@ class Decorators:
         try:
             os.environ["GRAPH_BEARER_TOKEN"] = response.json()["access_token"]
         except Exception as e:
-            logger.error(f"Error, could not set OS env bearer token: {e}")
+            logger.error(
+                f"Error, could not set OS env bearer token: {e}, {response.content}"
+            )
             raise Exception(
-                f"Error, could not set OS env bearer token: {response.content}"
+                f"Error, could not set OS env bearer token: {e}, {response.content}"
             )
         try:
             expires_at = datetime.now() + timedelta(
@@ -242,8 +244,12 @@ class Decorators:
         try:
             os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
         except Exception as e:
-            logger.error(f"Error, could not set OS env bearer token: {e}")
-            raise Exception(f"Error, could not set OS env bearer token: {e}")
+            logger.error(
+                f"Error, could not set OS env bearer token: {e}, {response.content}"
+            )
+            raise Exception(
+                f"Error, could not set OS env bearer token: {e}, {response.content}"
+            )
         try:
             expires_at = datetime.now() + timedelta(
                 seconds=float(response.json()["expires_in"])
