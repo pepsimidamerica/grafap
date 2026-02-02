@@ -15,6 +15,7 @@ import jwt
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, pkcs12
+from grafap._constants import DEFAULT_TIMEOUT
 from OpenSSL import crypto
 
 logger = logging.getLogger(__name__)
@@ -23,18 +24,18 @@ logger = logging.getLogger(__name__)
 class Decorators:
     """
     Decorators class for handling token refreshing
-    for Microsoft Graph and Sharepoint Rest API
+    for Microsoft Graph and Sharepoint Rest API.
     """
 
     @staticmethod
     def _refresh_graph_token(decorated):
         """
-        Decorator to refresh the graph access token if it has expired
+        Decorator to refresh the graph access token if it has expired.
         """
 
         def wrapper(*args, **kwargs):
             """
-            Wrapper function
+            Wrapper function.
             """
             if "GRAPH_BEARER_TOKEN_EXPIRES_AT" not in os.environ:
                 expires_at = "01/01/1901 00:00:00"
@@ -53,12 +54,12 @@ class Decorators:
     @staticmethod
     def _refresh_sp_token(decorated):
         """
-        Decorator to refresh the sharepoint rest API access token if it has expired
+        Decorator to refresh the sharepoint rest API access token if it has expired.
         """
 
         def wrapper(*args, **kwargs):
             """
-            Wrapper function
+            Wrapper function.
             """
             if "SP_BEARER_TOKEN_EXPIRES_AT" not in os.environ:
                 expires_at = "01/01/1901 00:00:00"
@@ -77,7 +78,7 @@ class Decorators:
     @staticmethod
     def _get_graph_token():
         """
-        Get Microsoft Graph bearer token
+        Get Microsoft Graph bearer token.
         """
         if "GRAPH_LOGIN_BASE_URL" not in os.environ:
             raise Exception("Error, could not find GRAPH_LOGIN_BASE_URL in env")
@@ -111,7 +112,7 @@ class Decorators:
                     "grant_type": os.environ["GRAPH_GRANT_TYPE"],
                     "scope": os.environ["GRAPH_SCOPES"],
                 },
-                timeout=30,
+                timeout=DEFAULT_TIMEOUT,
             )
         except requests.exceptions.HTTPError as e:
             logger.error(
@@ -119,13 +120,13 @@ class Decorators:
             )
             raise Exception(
                 f"Error {e.response.status_code}, could not get graph token: {e}"
-            )
+            ) from e
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             logger.error(f"Error, could not connect to graph token: {e}")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Error, could not get graph token: {e}")
-            raise Exception(f"Error, could not get graph token: {e}")
+            raise Exception(f"Error, could not get graph token: {e}") from e
 
         try:
             os.environ["GRAPH_BEARER_TOKEN"] = response.json()["access_token"]
@@ -135,7 +136,7 @@ class Decorators:
             )
             raise Exception(
                 f"Error, could not set OS env bearer token: {e}, {response.content}"
-            )
+            ) from e
         try:
             expires_at = datetime.now() + timedelta(
                 seconds=response.json()["expires_in"]
@@ -145,7 +146,7 @@ class Decorators:
             )
         except Exception as e:
             logger.error(f"Error, could not set os env expires at: {e}")
-            raise Exception(f"Error, could not set os env expires at: {e}")
+            raise Exception(f"Error, could not set os env expires at: {e}") from e
 
     @staticmethod
     def _get_sp_token():
@@ -225,7 +226,7 @@ class Decorators:
                     "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
                     "client_assertion": jwt_assertion,
                 },
-                timeout=30,
+                timeout=DEFAULT_TIMEOUT,
             )
         except requests.exceptions.HTTPError as e:
             logger.error(
@@ -233,13 +234,13 @@ class Decorators:
             )
             raise Exception(
                 f"Error {e.response.status_code}, could not get graph token: {e}"
-            )
+            ) from e
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             logger.error(f"Error, could not connect to graph token: {e}")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Error, could not get graph token: {e}")
-            raise Exception(f"Error, could not get graph token: {e}")
+            raise Exception(f"Error, could not get graph token: {e}") from e
 
         try:
             os.environ["SP_BEARER_TOKEN"] = response.json()["access_token"]
@@ -249,7 +250,7 @@ class Decorators:
             )
             raise Exception(
                 f"Error, could not set OS env bearer token: {e}, {response.content}"
-            )
+            ) from e
         try:
             expires_at = datetime.now() + timedelta(
                 seconds=float(response.json()["expires_in"])
@@ -259,4 +260,4 @@ class Decorators:
             )
         except Exception as e:
             logger.error(f"Error, could not set os env expires at: {e}")
-            raise Exception(f"Error, could not set os env expires at: {e}")
+            raise Exception(f"Error, could not set os env expires at: {e}") from e

@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import requests
 from grafap._auth import Decorators
+from grafap._constants import ODATA_NEXT_LINK, ODATA_VALUE
 from grafap._helpers import _basic_retry
 
 logger = logging.getLogger(__name__)
@@ -51,9 +52,9 @@ def doclibs_return(site_id: str) -> list[dict]:
             raise Exception(f"Error, could not get document libraries: {e}") from e
 
         data = response.json()
-        all_drives.extend(data.get("value", []))
-        if "@odata.nextLink" in data:
-            url = data["@odata.nextLink"]
+        all_drives.extend(data.get(ODATA_VALUE, []))
+        if ODATA_NEXT_LINK in data:
+            url = data[ODATA_NEXT_LINK]
         else:
             break
 
@@ -109,9 +110,9 @@ def doclib_items_return(
             raise Exception(f"Error, could not get document library items: {e}") from e
 
         data = response.json()
-        all_items.extend(data.get("value", []))
-        if "@odata.nextLink" in data:
-            url = data["@odata.nextLink"]
+        all_items.extend(data.get(ODATA_VALUE, []))
+        if ODATA_NEXT_LINK in data:
+            url = data[ODATA_NEXT_LINK]
         else:
             break
 

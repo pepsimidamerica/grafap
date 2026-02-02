@@ -10,6 +10,7 @@ from typing import Any
 
 import requests
 from grafap._auth import Decorators
+from grafap._constants import DEFAULT_TIMEOUT
 from grafap._helpers import _basic_retry
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ def lists_return(site_id: str) -> dict:
         Recursive function to handle pagination.
         """
         try:
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             logger.error(
@@ -104,7 +105,7 @@ def list_items_return(
         Recursive function to handle pagination.
         """
         try:
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             logger.error(
@@ -174,7 +175,7 @@ def list_item_return(site_id: str, list_id: str, item_id: str) -> dict:
                 "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
                 "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
             },
-            timeout=30,
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -219,7 +220,7 @@ def list_item_create(site_id: str, list_id: str, field_data: dict) -> dict:
             url=url,
             headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
             json={"fields": field_data},
-            timeout=30,
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -260,7 +261,7 @@ def list_item_delete(site_id: str, list_id: str, item_id: str) -> None:
         response = requests.delete(
             url=url,
             headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
-            timeout=30,
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -305,7 +306,7 @@ def list_item_update(
             url=url,
             headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
             json=field_data,
-            timeout=30,
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -358,7 +359,7 @@ def list_item_attachments_return(
                 "Accept": "application/json;odata=verbose;charset=utf-8",
                 "Content-Type": "application/json;odata=verbose;charset=utf-8",
             },
-            timeout=30,
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:

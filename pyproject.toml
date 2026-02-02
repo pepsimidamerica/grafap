@@ -1,6 +1,6 @@
 [project]
 name = "grafap"
-version = "0.1.13"
+version = "1.0"
 description = "Python package that acts as a wrapper for the Microsoft Graph API."
 readme = "README.md"
 authors = [{ name = "Jordan Maynor", email = "jmaynor@pepsimidamerica.com" }]
