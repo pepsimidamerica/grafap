@@ -1,5 +1,5 @@
 """
-The onenote module provides functions to interact with Microsoft OneNote
+The onenote module provides functions to interact with Microsoft OneNote.
 """
 
 # # @Decorators.refresh_graph_token_delegated

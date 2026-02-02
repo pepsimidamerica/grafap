@@ -15,11 +15,14 @@ logger = logging.getLogger(__name__)
 
 @_basic_retry
 @Decorators._refresh_graph_token
-def get_sp_termstore_groups(site_id: str) -> dict:
+def termstore_groups_return(site_id: str) -> dict:
     """
-    Lists all termstore group objects in a site
+    Lists all termstore group objects in a site.
 
     :param site_id: The site id
+    :type site_id: str
+    :return: A dictionary containing the termstore groups
+    :rtype: dict
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -37,12 +40,12 @@ def get_sp_termstore_groups(site_id: str) -> dict:
         )
         raise Exception(
             f"Error {e.response.status_code}, could not get termstore groups: {e}"
-        )
+        ) from e
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
         logger.error(f"Error, could not connect to termstore groups: {e}")
         raise
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not get termstore groups: {e}")
-        raise Exception(f"Error, could not get termstore groups: {e}")
+        raise Exception(f"Error, could not get termstore groups: {e}") from e
 
     return response.json()

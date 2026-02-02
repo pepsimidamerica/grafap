@@ -6,8 +6,7 @@ and deleting item data.
 
 import logging
 import os
-from typing import Any, Dict
-from urllib.parse import urlparse
+from typing import Any
 
 import requests
 from grafap._auth import Decorators
@@ -17,19 +16,24 @@ logger = logging.getLogger(__name__)
 
 
 @Decorators._refresh_graph_token
-def get_sp_lists(site_id: str) -> dict:
+def lists_return(site_id: str) -> dict:
     """
-    Gets all lists in a given site
+    Gets all lists in a given site.
 
     :param site_id: The site id to get lists from
+    :type site_id: str
+    :return: A dictionary of lists in the site
+    :rtype: dict
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
 
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists"
+
     @_basic_retry
     def recurs_get(url, headers):
         """
-        Recursive function to handle pagination
+        Recursive function to handle pagination.
         """
         try:
             response = requests.get(url, headers=headers, timeout=30)
@@ -40,24 +44,24 @@ def get_sp_lists(site_id: str) -> dict:
             )
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            )
+            ) from e
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             logger.error(f"Error, could not connect to sharepoint: {e}")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Error, could not get sharepoint list data: {e}")
-            raise Exception(f"Error, could not get sharepoint list data: {e}")
+            raise Exception(f"Error, could not get sharepoint list data: {e}") from e
 
         data = response.json()
 
         # Check for the next page
         if "@odata.nextLink" in data:
             return data["value"] + recurs_get(data["@odata.nextLink"], headers)
-        else:
-            return data["value"]
+
+        return data["value"]
 
     result = recurs_get(
-        os.environ["GRAPH_BASE_URL"] + site_id + "/lists",
+        url=url,
         headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
     )
 
@@ -65,28 +69,39 @@ def get_sp_lists(site_id: str) -> dict:
 
 
 @Decorators._refresh_graph_token
-def get_sp_list_items(
-    site_id: str, list_id: str, filter_query: str | None = None, select_query: str | None = None
+def list_items_return(
+    site_id: str,
+    list_id: str,
+    filter_query: str | None = None,
+    select_query: str | None = None,
 ) -> dict:
     """
-    Gets field data from a sharepoint list
+    Gets field data from a sharepoint list.
 
     Note: If you're using the filter_query expression, whichever field you
     want to filter on needs to be indexed or you'll get an error.
     To index a column, just add it in the sharepoint list settings.
 
     :param site_id: The site id to get lists from
+    :type site_id: str
     :param list_id: The list id to get items from
+    :type list_id: str
     :param filter_query: An optional OData filter query
+    :type filter_query: str | None
+    :param select_query: An optional OData select query to limit fields returned
+    :type select_query: str | None
+    :return: A dictionary of list items with field data
+    :rtype: dict
     """
-
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items"
 
     @_basic_retry
     def recurs_get(url, headers):
         """
-        Recursive function to handle pagination
+        Recursive function to handle pagination.
         """
         try:
             response = requests.get(url, headers=headers, timeout=30)
@@ -97,34 +112,26 @@ def get_sp_list_items(
             )
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            )
+            ) from e
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             logger.error(f"Error, could not connect to sharepoint: {e}")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Error, could not get sharepoint list data: {e}")
-            raise Exception(f"Error, could not get sharepoint list data: {e}")
+            raise Exception(f"Error, could not get sharepoint list data: {e}") from e
 
         data = response.json()
 
         # Check for the next page
         if "@odata.nextLink" in data:
             return data["value"] + recurs_get(data["@odata.nextLink"], headers)
-        else:
-            return data["value"]
 
-    url = (
-        os.environ["GRAPH_BASE_URL"]
-        + site_id
-        + "/lists/"
-        + list_id
-        + '/items/'
-    )
+        return data["value"]
 
     if select_query:
-        url += f'?expand=fields($select={select_query})'
+        url += f"?expand=fields($select={select_query})"
     else:
-        url += '?expand=fields'
+        url += "?expand=fields"
 
     if filter_query:
         url += "&$filter=" + filter_query
@@ -142,25 +149,23 @@ def get_sp_list_items(
 
 @_basic_retry
 @Decorators._refresh_graph_token
-def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
+def list_item_return(site_id: str, list_id: str, item_id: str) -> dict:
     """
-    Gets field data from a specific sharepoint list item
+    Gets field data from a specific sharepoint list item.
 
     :param site_id: The site id to get lists from
+    :type site_id: str
     :param list_id: The list id to get items from
+    :type list_id: str
     :param item_id: The id of the list item to get field data from
+    :type item_id: str
+    :return: A dictionary of list item field data
+    :rtype: dict
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
 
-    url = (
-        os.environ["GRAPH_BASE_URL"]
-        + site_id
-        + "/lists/"
-        + list_id
-        + "/items/"
-        + item_id
-    )
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}"
 
     try:
         response = requests.get(
@@ -178,30 +183,40 @@ def get_sp_list_item(site_id: str, list_id: str, item_id: str) -> dict:
         )
         raise Exception(
             f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-        )
+        ) from e
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
         logger.error(f"Error, could not connect to sharepoint: {e}")
         raise
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not get sharepoint list data: {e}")
-        raise Exception(f"Error, could not get sharepoint list data: {e}")
+        raise Exception(f"Error, could not get sharepoint list data: {e}") from e
 
     return response.json()
 
 
 @Decorators._refresh_graph_token
-def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
+def list_item_create(site_id: str, list_id: str, field_data: dict) -> dict:
     """
-    Create a new item in SharePoint
+    Create a new item in SharePoint.
 
     :param site_id: The site id to create the item in
+    :type site_id: str
     :param list_id: The list id to create the item in
+    :type list_id: str
     :param field_data: A dictionary of field data to create the item with, recommended
-    to pull a list of fields from the list first to get the correct field names
+                        to pull a list of fields from the list first to get the correct field names
+    :type field_data: dict
+    :return: A dictionary of the created list item
+    :rtype: dict
     """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items"
+
     try:
         response = requests.post(
-            os.environ["GRAPH_BASE_URL"] + site_id + "/lists/" + list_id + "/items",
+            url=url,
             headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
             json={"fields": field_data},
             timeout=30,
@@ -213,7 +228,7 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
         )
         raise Exception(
             f"Error {e.response.status_code}, could not create item in sharepoint: {e}"
-        )
+        ) from e
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not create item in sharepoint: {e}")
         raise Exception(f"Error, could not create item in sharepoint: {e}")
@@ -223,22 +238,27 @@ def create_sp_item(site_id: str, list_id: str, field_data: dict) -> dict:
 
 @_basic_retry
 @Decorators._refresh_graph_token
-def delete_sp_item(site_id: str, list_id: str, item_id: str):
+def list_item_delete(site_id: str, list_id: str, item_id: str) -> None:
     """
-    Delete an item in SharePoint
+    Delete an item in SharePoint.
 
     :param site_id: The site id to delete the item from
+    :type site_id: str
     :param list_id: The list id to delete the item from
+    :type list_id: str
     :param item_id: The id of the list item to delete
+    :type item_id: str
+    :return: None
+    :rtype: None
     """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}"
+
     try:
         response = requests.delete(
-            os.environ["GRAPH_BASE_URL"]
-            + site_id
-            + "/lists/"
-            + list_id
-            + "/items/"
-            + item_id,
+            url=url,
             headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
             timeout=30,
         )
@@ -249,38 +269,40 @@ def delete_sp_item(site_id: str, list_id: str, item_id: str):
         )
         raise Exception(
             f"Error {e.response.status_code}, could not delete item in sharepoint: {e}"
-        )
+        ) from e
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
         logger.error(f"Error, could not connect to sharepoint: {e}")
         raise
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not delete item in sharepoint: {e}")
-        raise Exception(f"Error, could not delete item in sharepoint: {e}")
+        raise Exception(f"Error, could not delete item in sharepoint: {e}") from e
 
 
 @_basic_retry
 @Decorators._refresh_graph_token
-def update_sp_item(
-    site_id: str, list_id: str, item_id: str, field_data: Dict[str, Any]
-):
+def list_item_update(
+    site_id: str, list_id: str, item_id: str, field_data: dict[str, Any]
+) -> None:
     """
-    Update an item in SharePoint
+    Update an item in SharePoint.
 
     :param site_id: The site id to update the item in
+    :type site_id: str
     :param list_id: The list id to update the item in
+    :type list_id: str
     :param item_id: The id of the list item to update
-    :param field_data: A dictionary of field data to update the item with, only
-    include fields you're updating. Recommended to pull a list of fields from the list first to get the correct field names
+    :type item_id: str
+    :param field_data: A dictionary of field data to update the item with, only include fields you're updating. Recommended to pull a list of fields from the list first to get the correct field names
+    :type field_data: dict[str, Any]
     """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}/fields"
+
     try:
         response = requests.patch(
-            os.environ["GRAPH_BASE_URL"]
-            + site_id
-            + "/lists/"
-            + list_id
-            + "/items/"
-            + item_id
-            + "/fields",
+            url=url,
             headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
             json=field_data,
             timeout=30,
@@ -292,17 +314,17 @@ def update_sp_item(
         )
         raise Exception(
             f"Error {e.response.status_code}, could not update item in sharepoint: {e}"
-        )
+        ) from e
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
         logger.error(f"Error, could not connect to sharepoint: {e}")
         raise
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not update item in sharepoint: {e}")
-        raise Exception(f"Error, could not update item in sharepoint: {e}")
+        raise Exception(f"Error, could not update item in sharepoint: {e}") from e
 
 
 @Decorators._refresh_sp_token
-def get_list_attachments(
+def list_item_attachments_return(
     site_url: str, list_name: str, item_id: int, download: bool = False
 ) -> list[dict]:
     """
@@ -313,8 +335,13 @@ def get_list_attachments(
     Note: Uses the Sharepoint REST API, and not the Graph API.
 
     :param site_url: The site url to get list attachments from
+    :type site_url: str
     :param item_id: The id of the list item to get attachments from
+    :type item_id: int
     :param download: If True, download the attachments to the local filesystem
+    :type download: bool
+    :return: A list of dictionaries containing attachment info or data
+    :rtype: list[dict]
     """
     # Ensure the required environment variable is set
     if "SP_BEARER_TOKEN" not in os.environ:
@@ -340,10 +367,10 @@ def get_list_attachments(
         )
         raise Exception(
             f"Error {e.response.status_code}, could not get list attachments: {e}"
-        )
+        ) from e
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not get list attachments: {e}")
-        raise Exception(f"Error, could not get list attachments: {e}")
+        raise Exception(f"Error, could not get list attachments: {e}") from e
 
     # Get the attachment data
     data = response.json().get("d", {})
@@ -356,9 +383,9 @@ def get_list_attachments(
         ]
 
     @_basic_retry
-    def download_attachment(attachment):
+    def download_attachment(attachment: dict) -> dict:
         """
-        Helper function to download an attachment
+        Helper function to download an attachment.
         """
         relative_url = attachment.get("ServerRelativeUrl")
         try:
@@ -378,10 +405,10 @@ def get_list_attachments(
             )
             raise Exception(
                 f"Error {e.response.status_code}, could not download attachment: {e}"
-            )
+            ) from e
         except requests.exceptions.RequestException as e:
             logger.error(f"Error, could not download attachment: {e}")
-            raise Exception(f"Error, could not download attachment: {e}")
+            raise Exception(f"Error, could not download attachment: {e}") from e
 
         return {
             "name": attachment.get("FileName"),
@@ -389,94 +416,6 @@ def get_list_attachments(
             "data": attachment_response.content,
         }
 
-    downloaded_files = []
-    for attachment in attachments:
-        downloaded_files.append(download_attachment(attachment))
+    downloaded_files = [download_attachment(x) for x in attachments]
 
     return downloaded_files
-
-
-@Decorators._refresh_sp_token
-def get_file(file_url: str) -> dict:
-    """
-    Downloads a file from a SharePoint site, likely stored in a document library.
-
-    :param file_url: The direct URL to the file in the SharePoint document library
-    :return: A dictionary containing the file name, URL, and file content
-    """
-    if "SP_BEARER_TOKEN" not in os.environ:
-        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
-
-    headers = {
-        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-        "Accept": "application/json;odata=verbose;charset=utf-8",
-        "Content-Type": "application/json;odata=verbose;charset=utf-8",
-    }
-
-    # Parse the file URL to get the site URL and relative URL
-    parsed_url = urlparse(file_url)
-    path_parts = parsed_url.path.split("/")
-    site_path = "/".join(path_parts[:3])  # This will include the site path
-    relative_url = "/".join(path_parts[3:])  # This will include the rest of the path
-
-    site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
-
-    try:
-        response = requests.get(
-            f"{site_url}/_api/Web/GetFileByUrl(@url)/$value?@url='{file_url}'",
-            headers=headers,
-            timeout=30,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"Error {e.response.status_code}, could not download file: {e}")
-        raise Exception(f"Error {e.response.status_code}, could not download file: {e}")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not download file: {e}")
-        raise Exception(f"Error, could not download file: {e}")
-
-    file_name = relative_url.split("/")[-1]
-
-    return {"name": file_name, "url": file_url, "data": response.content}
-
-
-@Decorators._refresh_sp_token
-def delete_file(file_url: str):
-    """
-    Deletes a file from a SharePoint site, likley stored in a document library.
-
-    :param file_url: The direct URL to the file in the SharePoint document library
-    """
-    if "SP_BEARER_TOKEN" not in os.environ:
-        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
-
-    headers = {
-        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-        "Accept": "application/json;odata=verbose;charset=utf-8",
-        "Content-Type": "application/json;odata=verbose;charset=utf-8",
-    }
-
-    # Parse the file URL to get the site URL and relative URL
-    parsed_url = urlparse(file_url)
-    path_parts = parsed_url.path.split("/")
-    site_path = "/".join(path_parts[:3])
-    relative_url = "/".join(path_parts[3:])  # This will include the rest of the path
-
-    site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
-
-    try:
-        response = requests.delete(
-            # f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')",
-            f"{site_url}/_api/Web/GetFileByUrl(@url)?@url='{file_url}'",
-            headers=headers,
-            timeout=30,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"Error {e.response.status_code}, could not delete file: {e}")
-        raise Exception(f"Error {e.response.status_code}, could not delete file: {e}")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not delete file: {e}")
-        raise Exception(f"Error, could not delete file: {e}")
-
-    return None

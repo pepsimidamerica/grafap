@@ -1,12 +1,11 @@
 """
 The users module contains functions for interacting with users in MS Graph, both
-actual users and also the site-specific users that are stored in a hidden
+actual AD users and also the site-specific users that are stored in a hidden
 sharepoint list.
 """
 
 import logging
 import os
-from typing import Optional
 
 import requests
 from grafap._auth import Decorators
@@ -16,15 +15,20 @@ logger = logging.getLogger(__name__)
 
 
 @Decorators._refresh_graph_token
-def get_ad_users(
+def ad_users_return(
     select: str | None = None, filter: str | None = None, expand: str | None = None
 ) -> dict:
     """
-    Gets AD users in a given tenant
+    Gets AD users in a given tenant.
 
     :param select: OData $select query option
+    :type select: str | None
     :param filter: OData $filter query option
+    :type filter: str | None
     :param expand: OData $expand query option
+    :type expand: str | None
+    :return: A dictionary containing user information
+    :rtype: dict
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -32,7 +36,7 @@ def get_ad_users(
     @_basic_retry
     def recurs_get(url, headers):
         """
-        Recursive function to handle pagination
+        Recursive function to handle pagination.
         """
         try:
             response = requests.get(url, headers=headers, timeout=30)
@@ -56,8 +60,8 @@ def get_ad_users(
         # Check for the next page
         if "@odata.nextLink" in data:
             return data["value"] + recurs_get(data["@odata.nextLink"], headers)
-        else:
-            return data["value"]
+
+        return data["value"]
 
     # Construct the query string
     query_params = []
@@ -81,13 +85,16 @@ def get_ad_users(
 
 
 @Decorators._refresh_graph_token
-def get_all_sp_users_info(site_id: str) -> dict:
+def sp_users_info_return(site_id: str) -> dict:
     """
-    Query the hidden sharepoint list that contains user information
-    Can use "root" as the site_id for the root site, otherwise use the site id
-    You would want to use whichever site ID is associated with the list you are querying
+    Query the hidden sharepoint list that contains user information.
+    Can use "root" as the site_id for the root site, otherwise use the site id.
+    You would want to use whichever site ID is associated with the list you are querying.
 
     :param site_id: The site id to get user information from
+    :type site_id: str
+    :return: A dictionary containing user information
+    :rtype: dict
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -95,7 +102,7 @@ def get_all_sp_users_info(site_id: str) -> dict:
     @_basic_retry
     def recurs_get(url, headers, params=None):
         """
-        Recursive function to handle pagination
+        Recursive function to handle pagination.
         """
         try:
             response = requests.get(
@@ -124,8 +131,8 @@ def get_all_sp_users_info(site_id: str) -> dict:
         # Check for the next page
         if "@odata.nextLink" in data:
             return data["value"] + recurs_get(data["@odata.nextLink"], headers)
-        else:
-            return data["value"]
+
+        return data["value"]
 
     url = (
         os.environ["GRAPH_BASE_URL"] + site_id + "/lists('User Information List')/items"
@@ -142,15 +149,20 @@ def get_all_sp_users_info(site_id: str) -> dict:
 
 @_basic_retry
 @Decorators._refresh_graph_token
-def get_sp_user_info(
-    site_id: str, user_id: Optional[str], email: Optional[str]
+def sp_user_info_return(
+    site_id: str, user_id: str | None = None, email: str | None = None
 ) -> dict:
     """
-    Get a specific user from the hidden sharepoint list that contains user information
+    Get a specific user from the hidden sharepoint list that contains user information.
 
     :param site_id: The site id to get user information from
+    :type site_id: str
     :param user_id: The user id to get information for
+    :type user_id: str | None
     :param email: The email to get information for
+    :type email: str | None
+    :return: A dictionary containing user information
+    :rtype: dict
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -180,19 +192,19 @@ def get_sp_user_info(
         )
         raise Exception(
             f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-        )
+        ) from e
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
         logger.error(f"Error, could not connect to sharepoint list data: {e}")
         raise
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not get sharepoint list data: {e}")
-        raise Exception(f"Error, could not get sharepoint list data: {e}")
+        raise Exception(f"Error, could not get sharepoint list data: {e}") from e
 
     if "value" in response.json():
         if len(response.json()["value"]) == 0:
             raise Exception("Error, could not find user in sharepoint list")
-        else:
-            return response.json()["value"][0]
+
+        return response.json()["value"][0]
     return response.json()
 
 
@@ -216,7 +228,7 @@ def get_sp_user_info(
 
 
 @Decorators._refresh_sp_token
-def ensure_sp_user(site_url: str, logon_name: str) -> dict:
+def sp_user_ensure(site_url: str, logon_name: str) -> dict:
     """
     Users sharepoint REST API, not MS Graph API. Endpoint is only available
     in the Sharepoint one. Ensure a user exists in given website. This is used
@@ -247,13 +259,15 @@ def ensure_sp_user(site_url: str, logon_name: str) -> dict:
         )
     except requests.exceptions.HTTPError as e:
         logger.error(f"Error {e.response.status_code}, could not ensure user: {e}")
-        raise Exception(f"Error {e.response.status_code}, could not ensure user: {e}")
+        raise Exception(
+            f"Error {e.response.status_code}, could not ensure user: {e}"
+        ) from e
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
         logger.error(f"Error, could not connect to ensure user: {e}")
         raise
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not ensure user: {e}")
-        raise Exception(f"Error, could not ensure user: {e}")
+        raise Exception(f"Error, could not ensure user: {e}") from e
 
     # Check for errors in the response
     if response.status_code != 200:
