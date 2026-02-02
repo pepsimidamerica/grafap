@@ -14,11 +14,94 @@ from grafap._helpers import _basic_retry
 logger = logging.getLogger(__name__)
 
 
-def doclibs_return(site_id: str):
+@Decorators._refresh_graph_token
+def doclibs_return(site_id: str) -> list[dict]:
     """
     Returns a list of all document libraries/drives for a given SharePoint site.
     """
-    pass
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drives"
+
+    all_drives = []
+
+    while True:
+        try:
+            response = requests.get(
+                url,
+                headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get document libraries: {e}"
+            )
+            raise Exception(
+                f"Error {e.response.status_code}, could not get document libraries: {e}"
+            ) from e
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get document libraries: {e}")
+            raise Exception(f"Error, could not get document libraries: {e}") from e
+
+        data = response.json()
+        all_drives.extend(data.get("value", []))
+        if "@odata.nextLink" in data:
+            url = data["@odata.nextLink"]
+        else:
+            break
+
+    return all_drives
+
+
+@Decorators._refresh_graph_token
+def doclib_items_return(
+    site_id: str, doclib_id: str, subfolder_id: str | None = None
+) -> list[dict]:
+    """
+    Returns a listing of all items (files or subfolders) in a given document library/drive.
+    Optionally, include a subfolder ID to return items within that subfolder.
+    """
+    if "GRAPH_BASE_URL" not in os.environ:
+        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+
+    if subfolder_id:
+        url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drives/{doclib_id}/items/{subfolder_id}/children"
+    else:
+        url = (
+            f"{os.environ['GRAPH_BASE_URL']}{site_id}/drives/{doclib_id}/root/children"
+        )
+
+    all_items = []
+
+    while True:
+        try:
+            response = requests.get(
+                url,
+                headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(
+                f"Error {e.response.status_code}, could not get document library items: {e}"
+            )
+            raise Exception(
+                f"Error {e.response.status_code}, could not get document library items: {e}"
+            ) from e
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error, could not get document library items: {e}")
+            raise Exception(f"Error, could not get document library items: {e}") from e
+
+        data = response.json()
+        all_items.extend(data.get("value", []))
+        if "@odata.nextLink" in data:
+            url = data["@odata.nextLink"]
+        else:
+            break
+
+    return all_items
 
 
 @Decorators._refresh_sp_token
