@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 def doclibs_return(site_id: str) -> list[dict]:
     """
     Returns a list of all document libraries/drives for a given SharePoint site.
+
+    :param site_id: The SharePoint site ID
+    :type site_id: str
+    :return: A list of document libraries/drives
+    :rtype: list[dict]
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -62,6 +67,15 @@ def doclib_items_return(
     """
     Returns a listing of all items (files or subfolders) in a given document library/drive.
     Optionally, include a subfolder ID to return items within that subfolder.
+
+    :param site_id: The SharePoint site ID
+    :type site_id: str
+    :param doclib_id: The document library/drive ID
+    :type doclib_id: str
+    :param subfolder_id: The subfolder ID within the document library/drive
+    :type subfolder_id: str | None
+    :return: A list of items (files or subfolders) in the document library/drive
+    :rtype: list[dict]
     """
     if "GRAPH_BASE_URL" not in os.environ:
         raise Exception("Error, could not find GRAPH_BASE_URL in env")
@@ -110,6 +124,7 @@ def doclib_file_return(file_url: str) -> dict:
     Downloads a file from a SharePoint site, likely stored in a document library.
 
     :param file_url: The direct URL to the file in the SharePoint document library
+    :type file_url: str
     :return: A dictionary containing the file name, URL, and file content
     """
     if "SP_BEARER_TOKEN" not in os.environ:
@@ -312,6 +327,9 @@ def doclib_file_delete(file_url: str) -> None:
     Deletes a file from a SharePoint site, likley stored in a document library.
 
     :param file_url: The direct URL to the file in the SharePoint document library
+    :type file_url: str
+    :return: None
+    :rtype: None
     """
     if "SP_BEARER_TOKEN" not in os.environ:
         raise Exception("Error, could not find SP_BEARER_TOKEN in env")

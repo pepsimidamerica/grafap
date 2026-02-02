@@ -10,6 +10,8 @@ load_dotenv()
 
 sys.path.insert(0, "")
 
-from grafap import
+from grafap import doclibs_return
 
-add_folder()
+res = doclibs_return(site_id=os.environ["SITE_ID_MAIN"])
+
+pass
