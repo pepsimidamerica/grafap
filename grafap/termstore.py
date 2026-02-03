@@ -8,7 +8,8 @@ import os
 
 import requests
 from grafap._auth import Decorators
-from grafap._helpers import _basic_retry
+from grafap._constants import DEFAULT_TIMEOUT
+from grafap._helpers import _basic_retry, _check_env, _get_graph_headers
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +25,13 @@ def termstore_groups_return(site_id: str) -> dict:
     :return: A dictionary containing the termstore groups
     :rtype: dict
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     try:
         response = requests.get(
             os.environ["GRAPH_BASE_URL"] + site_id + "/termStore/groups",
-            headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
-            timeout=30,
+            headers=_get_graph_headers(),
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:

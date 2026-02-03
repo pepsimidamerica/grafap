@@ -9,8 +9,18 @@ from urllib.parse import urlparse
 
 import requests
 from grafap._auth import Decorators
-from grafap._constants import ODATA_NEXT_LINK, ODATA_VALUE
-from grafap._helpers import _basic_retry
+from grafap._constants import (
+    DEFAULT_TIMEOUT,
+    FILE_OPERATION_TIMEOUT,
+    ODATA_NEXT_LINK,
+    ODATA_VALUE,
+)
+from grafap._helpers import (
+    _basic_retry,
+    _check_env,
+    _get_graph_headers,
+    _get_sp_headers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +35,7 @@ def doclibs_return(site_id: str) -> list[dict]:
     :return: A list of document libraries/drives
     :rtype: list[dict]
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drives"
 
@@ -37,7 +46,7 @@ def doclibs_return(site_id: str) -> list[dict]:
             response = requests.get(
                 url,
                 headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
-                timeout=30,
+                timeout=DEFAULT_TIMEOUT,
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -78,8 +87,7 @@ def doclib_items_return(
     :return: A list of items (files or subfolders) in the document library/drive
     :rtype: list[dict]
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     if subfolder_id:
         url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drives/{doclib_id}/items/{subfolder_id}/children"
@@ -94,8 +102,8 @@ def doclib_items_return(
         try:
             response = requests.get(
                 url,
-                headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
-                timeout=30,
+                headers=_get_graph_headers(),
+                timeout=DEFAULT_TIMEOUT,
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -128,15 +136,6 @@ def doclib_file_return(file_url: str) -> dict:
     :type file_url: str
     :return: A dictionary containing the file name, URL, and file content
     """
-    if "SP_BEARER_TOKEN" not in os.environ:
-        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
-
-    headers = {
-        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-        "Accept": "application/json;odata=verbose;charset=utf-8",
-        "Content-Type": "application/json;odata=verbose;charset=utf-8",
-    }
-
     # Parse the file URL to get the site URL and relative URL
     parsed_url = urlparse(file_url)
     path_parts = parsed_url.path.split("/")
@@ -148,8 +147,8 @@ def doclib_file_return(file_url: str) -> dict:
     try:
         response = requests.get(
             f"{site_url}/_api/Web/GetFileByUrl(@url)/$value?@url='{file_url}'",
-            headers=headers,
-            timeout=30,
+            headers=_get_sp_headers(),
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -178,9 +177,6 @@ def doclib_folder_create(site_url: str, folder_path: str) -> dict:
     :return: Details about the created folder
     :rtype: dict
     """
-    if "SP_BEARER_TOKEN" not in os.environ:
-        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
-
     parsed_url = urlparse(site_url)
     site_path = PurePosixPath(parsed_url.path)
     normalized_folder_path = PurePosixPath(str(folder_path).replace("\\", "/"))
@@ -192,22 +188,16 @@ def doclib_folder_create(site_url: str, folder_path: str) -> dict:
 
     server_relative_path = PurePosixPath("/" + str(server_relative_path).lstrip("/"))
 
-    headers = {
-        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-        "Accept": "application/json;odata=verbose;charset=utf-8",
-        "Content-Type": "application/json;odata=verbose;charset=utf-8",
-    }
-
     @_basic_retry
     def create_folder(folder_server_relative_url: str) -> None:
         response = requests.post(
             f"{site_url}/_api/web/folders",
-            headers=headers,
+            headers=_get_sp_headers(),
             json={
                 "__metadata": {"type": "SP.Folder"},
                 "ServerRelativeUrl": folder_server_relative_url,
             },
-            timeout=30,
+            timeout=DEFAULT_TIMEOUT,
         )
 
         if response.status_code in {200, 201}:
@@ -268,9 +258,6 @@ def doclib_file_create(
     :return: Details about the uploaded file
     :rtype: dict
     """
-    if "SP_BEARER_TOKEN" not in os.environ:
-        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
-
     parsed_url = urlparse(site_url)
     site_path = PurePosixPath(parsed_url.path)
     normalized_folder_path = PurePosixPath(str(folder_path).replace("\\", "/"))
@@ -282,12 +269,6 @@ def doclib_file_create(
 
     server_relative_path = PurePosixPath("/" + str(server_relative_path).lstrip("/"))
 
-    headers = {
-        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-        "Accept": "application/json;odata=verbose;charset=utf-8",
-        "Content-Type": "application/octet-stream",
-    }
-
     upload_url = (
         f"{site_url}/_api/web/GetFolderByServerRelativeUrl('{server_relative_path}')"
         f"/Files/add(url='{file_name}',overwrite={str(overwrite).lower()})"
@@ -296,9 +277,9 @@ def doclib_file_create(
     try:
         response = requests.post(
             upload_url,
-            headers=headers,
+            headers=_get_sp_headers({"Content-Type": "application/octet-stream"}),
             data=file_content,
-            timeout=60,
+            timeout=FILE_OPERATION_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -332,15 +313,6 @@ def doclib_file_delete(file_url: str) -> None:
     :return: None
     :rtype: None
     """
-    if "SP_BEARER_TOKEN" not in os.environ:
-        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
-
-    headers = {
-        "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-        "Accept": "application/json;odata=verbose;charset=utf-8",
-        "Content-Type": "application/json;odata=verbose;charset=utf-8",
-    }
-
     # Parse the file URL to get the site URL and relative URL
     parsed_url = urlparse(file_url)
     path_parts = parsed_url.path.split("/")
@@ -353,8 +325,8 @@ def doclib_file_delete(file_url: str) -> None:
         response = requests.delete(
             # f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')",
             f"{site_url}/_api/Web/GetFileByUrl(@url)?@url='{file_url}'",
-            headers=headers,
-            timeout=30,
+            headers=_get_sp_headers(),
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:

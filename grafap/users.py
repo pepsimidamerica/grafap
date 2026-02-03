@@ -9,7 +9,19 @@ import os
 
 import requests
 from grafap._auth import Decorators
-from grafap._helpers import _basic_retry
+from grafap._constants import (
+    DEFAULT_TIMEOUT,
+    GRAPH_PREFER_OPTIONAL,
+    ODATA_NEXT_LINK,
+    ODATA_VALUE,
+    USER_INFO_LIST_NAME,
+)
+from grafap._helpers import (
+    _basic_retry,
+    _check_env,
+    _get_graph_headers,
+    _get_sp_headers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +42,7 @@ def ad_users_return(
     :return: A dictionary containing user information
     :rtype: dict
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     @_basic_retry
     def recurs_get(url, headers):
@@ -39,7 +50,7 @@ def ad_users_return(
         Recursive function to handle pagination.
         """
         try:
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             logger.error(
@@ -47,21 +58,21 @@ def ad_users_return(
             )
             raise Exception(
                 f"Error {e.response.status_code}, could not get user data: {e}"
-            )
+            ) from e
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             logger.error(f"Error, could not connect to user data: {e}")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Error, could not get user data: {e}")
-            raise Exception(f"Error, could not get user data: {e}")
+            raise Exception(f"Error, could not get user data: {e}") from e
 
         data = response.json()
 
         # Check for the next page
-        if "@odata.nextLink" in data:
-            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        if ODATA_NEXT_LINK in data:
+            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
 
-        return data["value"]
+        return data[ODATA_VALUE]
 
     # Construct the query string
     query_params = []
@@ -78,7 +89,7 @@ def ad_users_return(
 
     result = recurs_get(
         url,
-        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        headers=_get_graph_headers(),
     )
 
     return result
@@ -96,8 +107,7 @@ def sp_users_info_return(site_id: str) -> dict:
     :return: A dictionary containing user information
     :rtype: dict
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     @_basic_retry
     def recurs_get(url, headers, params=None):
@@ -108,7 +118,7 @@ def sp_users_info_return(site_id: str) -> dict:
             response = requests.get(
                 url,
                 headers=headers,
-                timeout=30,
+                timeout=DEFAULT_TIMEOUT,
                 params=params,
             )
             response.raise_for_status()
@@ -118,21 +128,21 @@ def sp_users_info_return(site_id: str) -> dict:
             )
             raise Exception(
                 f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            )
+            ) from e
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             logger.error(f"Error, could not connect to sharepoint list data: {e}")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Error, could not get sharepoint list data: {e}")
-            raise Exception(f"Error, could not get sharepoint list data: {e}")
+            raise Exception(f"Error, could not get sharepoint list data: {e}") from e
 
         data = response.json()
 
         # Check for the next page
-        if "@odata.nextLink" in data:
-            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        if ODATA_NEXT_LINK in data:
+            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
 
-        return data["value"]
+        return data[ODATA_VALUE]
 
     url = (
         os.environ["GRAPH_BASE_URL"] + site_id + "/lists('User Information List')/items"
@@ -140,7 +150,7 @@ def sp_users_info_return(site_id: str) -> dict:
 
     result = recurs_get(
         url,
-        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        headers=_get_graph_headers(),
         params={"expand": "fields(select=Id,Email)"},
     )
 
@@ -164,11 +174,10 @@ def sp_user_info_return(
     :return: A dictionary containing user information
     :rtype: dict
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     url = (
-        os.environ["GRAPH_BASE_URL"] + site_id + "/lists('User Information List')/items"
+        f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists('{USER_INFO_LIST_NAME}')/items"
     )
 
     if user_id:
@@ -179,11 +188,8 @@ def sp_user_info_return(
     try:
         response = requests.get(
             url,
-            headers={
-                "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
-                "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
-            },
-            timeout=30,
+            headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -200,31 +206,12 @@ def sp_user_info_return(
         logger.error(f"Error, could not get sharepoint list data: {e}")
         raise Exception(f"Error, could not get sharepoint list data: {e}") from e
 
-    if "value" in response.json():
-        if len(response.json()["value"]) == 0:
+    if ODATA_VALUE in response.json():
+        if len(response.json()[ODATA_VALUE]) == 0:
             raise Exception("Error, could not find user in sharepoint list")
 
-        return response.json()["value"][0]
+        return response.json()[ODATA_VALUE][0]
     return response.json()
-
-
-# Doesn't seem to be needed, commenting out for now
-# @Decorators.refresh_sp_token
-# def get_site_user_by_id(site_url: str, user_id: str) -> dict:
-#     """
-#     Gets a sharepoint site user by the lookup id
-#     """
-#     headers = {
-#         "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-#         "Accept": "application/json;odata=verbose",
-#     }
-
-#     url = f"{site_url}/_api/web/siteusers/getbyid({user_id})"
-
-#     response = requests.get(url, headers=headers, timeout=30)
-
-#     if response.status_code != 200:
-#         raise Exception("Error, could not get site user data: " + str(response.content))
 
 
 @Decorators._refresh_sp_token
@@ -239,23 +226,15 @@ def sp_user_ensure(site_url: str, logon_name: str) -> dict:
     :param site_url: The site url
     :param logon_name: The user's logon name, i.e. email address
     """
-    # Ensure the required environment variable is set
-    if "SP_BEARER_TOKEN" not in os.environ:
-        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
-
     # Construct the URL for the ensure user endpoint
     url = f"{site_url}/_api/web/ensureuser"
 
     try:
         response = requests.post(
             url,
-            headers={
-                "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-                "Accept": "application/json;odata=verbose;charset=utf-8",
-                "Content-Type": "application/json;odata=verbose;charset=utf-8",
-            },
+            headers=_get_sp_headers(),
             json={"logonName": logon_name},
-            timeout=30,
+            timeout=DEFAULT_TIMEOUT,
         )
     except requests.exceptions.HTTPError as e:
         logger.error(f"Error {e.response.status_code}, could not ensure user: {e}")

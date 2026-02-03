@@ -156,3 +156,17 @@ def _get_sp_headers(extra_headers: dict | None = None) -> dict:
     if extra_headers:
         headers.update(extra_headers)
     return headers
+
+
+def _check_env(key: str, default: str | None = None):
+    """
+    Checks if a given env var has been set. Raises an error if it hasn't been
+    with instructions to read the README..md for setup instructions.
+    """
+    value = os.environ.get(key, default)
+    if value is None:
+        raise OSError(
+            f"Missing required environment variable: {key}\n"
+            f"Please see README.md for configuration instructions."
+        )
+    return value

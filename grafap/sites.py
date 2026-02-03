@@ -9,7 +9,8 @@ import os
 
 import requests
 from grafap._auth import Decorators
-from grafap._helpers import _basic_retry
+from grafap._constants import DEFAULT_TIMEOUT, ODATA_NEXT_LINK, ODATA_VALUE
+from grafap._helpers import _basic_retry, _check_env, _get_graph_headers
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,7 @@ def sites_return() -> dict:
     """
     Gets all site data in a given tenant.
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     @_basic_retry
     def recurs_get(url, headers):
@@ -28,7 +28,7 @@ def sites_return() -> dict:
         Recursive function to handle pagination.
         """
         try:
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             logger.error(
@@ -47,13 +47,13 @@ def sites_return() -> dict:
         data = response.json()
 
         # Check for the next page
-        if "@odata.nextLink" in data:
-            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        if ODATA_NEXT_LINK in data:
+            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
 
-        return data["value"]
+        return data[ODATA_VALUE]
 
     result = recurs_get(
         os.environ["GRAPH_BASE_URL"],
-        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        headers=_get_graph_headers(),
     )
     return result

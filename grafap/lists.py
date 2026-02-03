@@ -10,8 +10,18 @@ from typing import Any
 
 import requests
 from grafap._auth import Decorators
-from grafap._constants import DEFAULT_TIMEOUT
-from grafap._helpers import _basic_retry
+from grafap._constants import (
+    DEFAULT_TIMEOUT,
+    GRAPH_PREFER_OPTIONAL,
+    ODATA_NEXT_LINK,
+    ODATA_VALUE,
+)
+from grafap._helpers import (
+    _basic_retry,
+    _check_env,
+    _get_graph_headers,
+    _get_sp_headers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +36,7 @@ def lists_return(site_id: str) -> dict:
     :return: A dictionary of lists in the site
     :rtype: dict
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists"
 
@@ -56,14 +65,14 @@ def lists_return(site_id: str) -> dict:
         data = response.json()
 
         # Check for the next page
-        if "@odata.nextLink" in data:
-            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        if ODATA_NEXT_LINK in data:
+            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
 
-        return data["value"]
+        return data[ODATA_VALUE]
 
     result = recurs_get(
         url=url,
-        headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+        headers=_get_graph_headers(),
     )
 
     return result
@@ -94,8 +103,7 @@ def list_items_return(
     :return: A dictionary of list items with field data
     :rtype: dict
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items"
 
@@ -124,10 +132,10 @@ def list_items_return(
         data = response.json()
 
         # Check for the next page
-        if "@odata.nextLink" in data:
-            return data["value"] + recurs_get(data["@odata.nextLink"], headers)
+        if ODATA_NEXT_LINK in data:
+            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
 
-        return data["value"]
+        return data[ODATA_VALUE]
 
     if select_query:
         url += f"?expand=fields($select={select_query})"
@@ -139,10 +147,7 @@ def list_items_return(
 
     result = recurs_get(
         url,
-        headers={
-            "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
-            "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
-        },
+        headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
     )
 
     return result
@@ -163,18 +168,14 @@ def list_item_return(site_id: str, list_id: str, item_id: str) -> dict:
     :return: A dictionary of list item field data
     :rtype: dict
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}"
 
     try:
         response = requests.get(
             url,
-            headers={
-                "Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"],
-                "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
-            },
+            headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
             timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
@@ -210,15 +211,14 @@ def list_item_create(site_id: str, list_id: str, field_data: dict) -> dict:
     :return: A dictionary of the created list item
     :rtype: dict
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items"
 
     try:
         response = requests.post(
             url=url,
-            headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+            headers=_get_graph_headers(),
             json={"fields": field_data},
             timeout=DEFAULT_TIMEOUT,
         )
@@ -232,7 +232,7 @@ def list_item_create(site_id: str, list_id: str, field_data: dict) -> dict:
         ) from e
     except requests.exceptions.RequestException as e:
         logger.error(f"Error, could not create item in sharepoint: {e}")
-        raise Exception(f"Error, could not create item in sharepoint: {e}")
+        raise Exception(f"Error, could not create item in sharepoint: {e}") from e
 
     return response.json()
 
@@ -252,15 +252,14 @@ def list_item_delete(site_id: str, list_id: str, item_id: str) -> None:
     :return: None
     :rtype: None
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}"
 
     try:
         response = requests.delete(
             url=url,
-            headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+            headers=_get_graph_headers(),
             timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
@@ -296,15 +295,14 @@ def list_item_update(
     :param field_data: A dictionary of field data to update the item with, only include fields you're updating. Recommended to pull a list of fields from the list first to get the correct field names
     :type field_data: dict[str, Any]
     """
-    if "GRAPH_BASE_URL" not in os.environ:
-        raise Exception("Error, could not find GRAPH_BASE_URL in env")
+    _check_env("GRAPH_BASE_URL")
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}/fields"
 
     try:
         response = requests.patch(
             url=url,
-            headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
+            headers=_get_graph_headers(),
             json=field_data,
             timeout=DEFAULT_TIMEOUT,
         )
@@ -344,21 +342,13 @@ def list_item_attachments_return(
     :return: A list of dictionaries containing attachment info or data
     :rtype: list[dict]
     """
-    # Ensure the required environment variable is set
-    if "SP_BEARER_TOKEN" not in os.environ:
-        raise Exception("Error, could not find SP_BEARER_TOKEN in env")
-
     # Construct the URL for the ensure user endpoint
     url = f"{site_url}/_api/lists/getByTitle('{list_name}')/items({item_id})?$select=AttachmentFiles,Title&$expand=AttachmentFiles"
 
     try:
         response = requests.get(
             url,
-            headers={
-                "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-                "Accept": "application/json;odata=verbose;charset=utf-8",
-                "Content-Type": "application/json;odata=verbose;charset=utf-8",
-            },
+            headers=_get_sp_headers(),
             timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
@@ -392,12 +382,8 @@ def list_item_attachments_return(
         try:
             attachment_response = requests.get(
                 f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')/$value",
-                headers={
-                    "Authorization": "Bearer " + os.environ["SP_BEARER_TOKEN"],
-                    "Accept": "application/json;odata=verbose;charset=utf-8",
-                    "Content-Type": "application/json;odata=verbose;charset=utf-8",
-                },
-                timeout=30,
+                headers=_get_sp_headers(),
+                timeout=DEFAULT_TIMEOUT,
             )
             attachment_response.raise_for_status()
         except requests.exceptions.HTTPError as e:
