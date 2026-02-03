@@ -145,7 +145,7 @@ def sp_users_info_return(site_id: str) -> dict:
         return data[ODATA_VALUE]
 
     url = (
-        os.environ["GRAPH_BASE_URL"] + site_id + "/lists('User Information List')/items"
+        f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists('{USER_INFO_LIST_NAME}')/items"
     )
 
     result = recurs_get(
