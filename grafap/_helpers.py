@@ -6,7 +6,7 @@ import logging
 import os
 
 import requests
-from grafap.constants import DEFAULT_TIMEOUT
+from grafap.constants import DEFAULT_TIMEOUT, ODATA_NEXT_LINK, ODATA_VALUE
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -113,13 +113,13 @@ def _get_paginated(
             raise Exception(f"Pagination failed during {context}: {e}") from e
 
         data = response.json()
-        all_results.extend(data.get("value", []))
+        all_results.extend(data.get(ODATA_VALUE, []))
 
         # Check for next page
-        if "@odata.nextLink" not in data:
+        if ODATA_NEXT_LINK not in data:
             break
 
-        url = data["@odata.nextLink"]
+        url = data[ODATA_NEXT_LINK]
 
     return all_results
 

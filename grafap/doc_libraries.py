@@ -12,14 +12,14 @@ from grafap._auth import Decorators
 from grafap._constants import (
     DEFAULT_TIMEOUT,
     FILE_OPERATION_TIMEOUT,
-    ODATA_NEXT_LINK,
-    ODATA_VALUE,
 )
 from grafap._helpers import (
     _basic_retry,
     _check_env,
     _get_graph_headers,
+    _get_paginated,
     _get_sp_headers,
+    _make_request,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,35 +39,11 @@ def doclibs_return(site_id: str) -> list[dict]:
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drives"
 
-    all_drives = []
-
-    while True:
-        try:
-            response = requests.get(
-                url,
-                headers={"Authorization": "Bearer " + os.environ["GRAPH_BEARER_TOKEN"]},
-                timeout=DEFAULT_TIMEOUT,
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            logger.error(
-                f"Error {e.response.status_code}, could not get document libraries: {e}"
-            )
-            raise Exception(
-                f"Error {e.response.status_code}, could not get document libraries: {e}"
-            ) from e
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error, could not get document libraries: {e}")
-            raise Exception(f"Error, could not get document libraries: {e}") from e
-
-        data = response.json()
-        all_drives.extend(data.get(ODATA_VALUE, []))
-        if ODATA_NEXT_LINK in data:
-            url = data[ODATA_NEXT_LINK]
-        else:
-            break
-
-    return all_drives
+    return _get_paginated(
+        url,
+        headers=_get_graph_headers(),
+        context="get document libraries",
+    )
 
 
 @Decorators._refresh_graph_token
@@ -96,35 +72,11 @@ def doclib_items_return(
             f"{os.environ['GRAPH_BASE_URL']}{site_id}/drives/{doclib_id}/root/children"
         )
 
-    all_items = []
-
-    while True:
-        try:
-            response = requests.get(
-                url,
-                headers=_get_graph_headers(),
-                timeout=DEFAULT_TIMEOUT,
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            logger.error(
-                f"Error {e.response.status_code}, could not get document library items: {e}"
-            )
-            raise Exception(
-                f"Error {e.response.status_code}, could not get document library items: {e}"
-            ) from e
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error, could not get document library items: {e}")
-            raise Exception(f"Error, could not get document library items: {e}") from e
-
-        data = response.json()
-        all_items.extend(data.get(ODATA_VALUE, []))
-        if ODATA_NEXT_LINK in data:
-            url = data[ODATA_NEXT_LINK]
-        else:
-            break
-
-    return all_items
+    return _get_paginated(
+        url,
+        headers=_get_graph_headers(),
+        context="get document library items",
+    )
 
 
 @Decorators._refresh_sp_token
@@ -144,21 +96,13 @@ def doclib_file_return(file_url: str) -> dict:
 
     site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
 
-    try:
-        response = requests.get(
-            f"{site_url}/_api/Web/GetFileByUrl(@url)/$value?@url='{file_url}'",
-            headers=_get_sp_headers(),
-            timeout=DEFAULT_TIMEOUT,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"Error {e.response.status_code}, could not download file: {e}")
-        raise Exception(
-            f"Error {e.response.status_code}, could not download file: {e}"
-        ) from e
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not download file: {e}")
-        raise Exception(f"Error, could not download file: {e}") from e
+    response = _make_request(
+        method="GET",
+        url=f"{site_url}/_api/Web/GetFileByUrl(@url)/$value?@url='{file_url}'",
+        headers=_get_sp_headers(),
+        context="download file",
+        timeout=FILE_OPERATION_TIMEOUT,
+    )
 
     file_name = relative_url.split("/")[-1]
 
@@ -192,12 +136,12 @@ def doclib_folder_create(site_url: str, folder_path: str) -> dict:
     def create_folder(folder_server_relative_url: str) -> None:
         response = requests.post(
             f"{site_url}/_api/web/folders",
-            headers=_get_sp_headers(),
+            headers=_get_sp_headers({"X-RequestDigest": ""}),  # TODO Get digest value
             json={
                 "__metadata": {"type": "SP.Folder"},
                 "ServerRelativeUrl": folder_server_relative_url,
             },
-            timeout=DEFAULT_TIMEOUT,
+            timeout=FILE_OPERATION_TIMEOUT,
         )
 
         if response.status_code in {200, 201}:
@@ -277,7 +221,9 @@ def doclib_file_create(
     try:
         response = requests.post(
             upload_url,
-            headers=_get_sp_headers({"Content-Type": "application/octet-stream"}),
+            headers=_get_sp_headers(
+                {"Content-Type": "application/octet-stream", "X-RequestDigest": ""}
+            ),  # TODO Get digest value
             data=file_content,
             timeout=FILE_OPERATION_TIMEOUT,
         )
@@ -325,7 +271,7 @@ def doclib_file_delete(file_url: str) -> None:
         response = requests.delete(
             # f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')",
             f"{site_url}/_api/Web/GetFileByUrl(@url)?@url='{file_url}'",
-            headers=_get_sp_headers(),
+            headers=_get_sp_headers({"X-RequestDigest": ""}),  # TODO Get digest value
             timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()

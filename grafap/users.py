@@ -20,7 +20,9 @@ from grafap._helpers import (
     _basic_retry,
     _check_env,
     _get_graph_headers,
+    _get_paginated,
     _get_sp_headers,
+    _make_request,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,59 +46,30 @@ def ad_users_return(
     """
     _check_env("GRAPH_BASE_URL")
 
-    @_basic_retry
-    def recurs_get(url, headers):
-        """
-        Recursive function to handle pagination.
-        """
-        try:
-            response = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            logger.error(
-                f"Error {e.response.status_code}, could not get user data: {e}"
-            )
-            raise Exception(
-                f"Error {e.response.status_code}, could not get user data: {e}"
-            ) from e
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            logger.error(f"Error, could not connect to user data: {e}")
-            raise
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error, could not get user data: {e}")
-            raise Exception(f"Error, could not get user data: {e}") from e
+    params = {}
 
-        data = response.json()
-
-        # Check for the next page
-        if ODATA_NEXT_LINK in data:
-            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
-
-        return data[ODATA_VALUE]
-
-    # Construct the query string
-    query_params = []
     if select:
-        query_params.append(f"$select={select}")
+        params["$select"] = select
     if filter:
-        query_params.append(f"$filter={filter}")
+        params["$filter"] = filter
     if expand:
-        query_params.append(f"$expand={expand}")
+        params["$expand"] = expand
 
-    query_string = "&".join(query_params)
-    base_url = "https://graph.microsoft.com/v1.0/users"
-    url = f"{base_url}?{query_string}" if query_string else base_url
+    url = "https://graph.microsoft.com/v1.0/users"
 
-    result = recurs_get(
-        url,
+    response = _make_request(
+        method="GET",
+        url=url,
         headers=_get_graph_headers(),
+        context="getting AD users",
+        params=params,
     )
 
-    return result
+    return response.json()
 
 
 @Decorators._refresh_graph_token
-def sp_users_info_return(site_id: str) -> dict:
+def sp_users_info_return(site_id: str) -> list[dict]:
     """
     Query the hidden sharepoint list that contains user information.
     Can use "root" as the site_id for the root site, otherwise use the site id.
@@ -109,46 +82,11 @@ def sp_users_info_return(site_id: str) -> dict:
     """
     _check_env("GRAPH_BASE_URL")
 
-    @_basic_retry
-    def recurs_get(url, headers, params=None):
-        """
-        Recursive function to handle pagination.
-        """
-        try:
-            response = requests.get(
-                url,
-                headers=headers,
-                timeout=DEFAULT_TIMEOUT,
-                params=params,
-            )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            logger.error(
-                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            )
-            raise Exception(
-                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            ) from e
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            logger.error(f"Error, could not connect to sharepoint list data: {e}")
-            raise
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error, could not get sharepoint list data: {e}")
-            raise Exception(f"Error, could not get sharepoint list data: {e}") from e
-
-        data = response.json()
-
-        # Check for the next page
-        if ODATA_NEXT_LINK in data:
-            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
-
-        return data[ODATA_VALUE]
-
     url = (
         f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists('{USER_INFO_LIST_NAME}')/items"
     )
 
-    result = recurs_get(
+    result = _get_paginated(
         url,
         headers=_get_graph_headers(),
         params={"expand": "fields(select=Id,Email)"},

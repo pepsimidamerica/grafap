@@ -8,26 +8,24 @@ import logging
 import os
 from typing import Any
 
-import requests
 from grafap._auth import Decorators
 from grafap._constants import (
-    DEFAULT_TIMEOUT,
     GRAPH_PREFER_OPTIONAL,
-    ODATA_NEXT_LINK,
-    ODATA_VALUE,
 )
 from grafap._helpers import (
     _basic_retry,
     _check_env,
     _get_graph_headers,
+    _get_paginated,
     _get_sp_headers,
+    _make_request,
 )
 
 logger = logging.getLogger(__name__)
 
 
 @Decorators._refresh_graph_token
-def lists_return(site_id: str) -> dict:
+def lists_return(site_id: str) -> list[dict]:
     """
     Gets all lists in a given site.
 
@@ -40,42 +38,11 @@ def lists_return(site_id: str) -> dict:
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists"
 
-    @_basic_retry
-    def recurs_get(url, headers):
-        """
-        Recursive function to handle pagination.
-        """
-        try:
-            response = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            logger.error(
-                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            )
-            raise Exception(
-                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            ) from e
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            logger.error(f"Error, could not connect to sharepoint: {e}")
-            raise
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error, could not get sharepoint list data: {e}")
-            raise Exception(f"Error, could not get sharepoint list data: {e}") from e
-
-        data = response.json()
-
-        # Check for the next page
-        if ODATA_NEXT_LINK in data:
-            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
-
-        return data[ODATA_VALUE]
-
-    result = recurs_get(
-        url=url,
+    return _get_paginated(
+        url,
         headers=_get_graph_headers(),
+        context="get sharepoint lists",
     )
-
-    return result
 
 
 @Decorators._refresh_graph_token
@@ -84,7 +51,7 @@ def list_items_return(
     list_id: str,
     filter_query: str | None = None,
     select_query: str | None = None,
-) -> dict:
+) -> list[dict]:
     """
     Gets field data from a sharepoint list.
 
@@ -107,53 +74,24 @@ def list_items_return(
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items"
 
-    @_basic_retry
-    def recurs_get(url, headers):
-        """
-        Recursive function to handle pagination.
-        """
-        try:
-            response = requests.get(url, headers=headers, timeout=DEFAULT_TIMEOUT)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            logger.error(
-                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            )
-            raise Exception(
-                f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-            ) from e
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            logger.error(f"Error, could not connect to sharepoint: {e}")
-            raise
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error, could not get sharepoint list data: {e}")
-            raise Exception(f"Error, could not get sharepoint list data: {e}") from e
-
-        data = response.json()
-
-        # Check for the next page
-        if ODATA_NEXT_LINK in data:
-            return data[ODATA_VALUE] + recurs_get(data[ODATA_NEXT_LINK], headers)
-
-        return data[ODATA_VALUE]
+    params = {"expand": "fields"}
 
     if select_query:
-        url += f"?expand=fields($select={select_query})"
-    else:
-        url += "?expand=fields"
+        params["expand"] = f"fields($select={select_query})"
 
     if filter_query:
-        url += "&$filter=" + filter_query
+        params["filter"] = filter_query
 
-    result = recurs_get(
+    result = _get_paginated(
         url,
         headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
+        context="get sharepoint list items",
+        params=params,
     )
 
     return result
 
 
-@_basic_retry
 @Decorators._refresh_graph_token
 def list_item_return(site_id: str, list_id: str, item_id: str) -> dict:
     """
@@ -172,26 +110,12 @@ def list_item_return(site_id: str, list_id: str, item_id: str) -> dict:
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}"
 
-    try:
-        response = requests.get(
-            url,
-            headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
-            timeout=DEFAULT_TIMEOUT,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(
-            f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-        )
-        raise Exception(
-            f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-        ) from e
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-        logger.error(f"Error, could not connect to sharepoint: {e}")
-        raise
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not get sharepoint list data: {e}")
-        raise Exception(f"Error, could not get sharepoint list data: {e}") from e
+    response = _make_request(
+        method="GET",
+        url=url,
+        headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
+        context="get sharepoint list item",
+    )
 
     return response.json()
 
@@ -215,24 +139,13 @@ def list_item_create(site_id: str, list_id: str, field_data: dict) -> dict:
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items"
 
-    try:
-        response = requests.post(
-            url=url,
-            headers=_get_graph_headers(),
-            json={"fields": field_data},
-            timeout=DEFAULT_TIMEOUT,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(
-            f"Error {e.response.status_code}, could not create item in sharepoint: {e}"
-        )
-        raise Exception(
-            f"Error {e.response.status_code}, could not create item in sharepoint: {e}"
-        ) from e
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not create item in sharepoint: {e}")
-        raise Exception(f"Error, could not create item in sharepoint: {e}") from e
+    response = _make_request(
+        method="POST",
+        url=url,
+        headers=_get_graph_headers(),
+        context="create sharepoint list item",
+        json={"fields": field_data},
+    )
 
     return response.json()
 
@@ -256,26 +169,12 @@ def list_item_delete(site_id: str, list_id: str, item_id: str) -> None:
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}"
 
-    try:
-        response = requests.delete(
-            url=url,
-            headers=_get_graph_headers(),
-            timeout=DEFAULT_TIMEOUT,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(
-            f"Error {e.response.status_code}, could not delete item in sharepoint: {e}"
-        )
-        raise Exception(
-            f"Error {e.response.status_code}, could not delete item in sharepoint: {e}"
-        ) from e
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-        logger.error(f"Error, could not connect to sharepoint: {e}")
-        raise
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not delete item in sharepoint: {e}")
-        raise Exception(f"Error, could not delete item in sharepoint: {e}") from e
+    _make_request(
+        method="DELETE",
+        url=url,
+        headers=_get_graph_headers(),
+        context="delete sharepoint list item",
+    )
 
 
 @_basic_retry
@@ -299,27 +198,13 @@ def list_item_update(
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items/{item_id}/fields"
 
-    try:
-        response = requests.patch(
-            url=url,
-            headers=_get_graph_headers(),
-            json=field_data,
-            timeout=DEFAULT_TIMEOUT,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(
-            f"Error {e.response.status_code}, could not update item in sharepoint: {e}"
-        )
-        raise Exception(
-            f"Error {e.response.status_code}, could not update item in sharepoint: {e}"
-        ) from e
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-        logger.error(f"Error, could not connect to sharepoint: {e}")
-        raise
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not update item in sharepoint: {e}")
-        raise Exception(f"Error, could not update item in sharepoint: {e}") from e
+    _make_request(
+        method="PATCH",
+        url=url,
+        headers=_get_graph_headers(),
+        context="update sharepoint list item",
+        json=field_data,
+    )
 
 
 @Decorators._refresh_sp_token
@@ -345,23 +230,12 @@ def list_item_attachments_return(
     # Construct the URL for the ensure user endpoint
     url = f"{site_url}/_api/lists/getByTitle('{list_name}')/items({item_id})?$select=AttachmentFiles,Title&$expand=AttachmentFiles"
 
-    try:
-        response = requests.get(
-            url,
-            headers=_get_sp_headers(),
-            timeout=DEFAULT_TIMEOUT,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(
-            f"Error {e.response.status_code}, could not get list attachments: {e}"
-        )
-        raise Exception(
-            f"Error {e.response.status_code}, could not get list attachments: {e}"
-        ) from e
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not get list attachments: {e}")
-        raise Exception(f"Error, could not get list attachments: {e}") from e
+    response = _make_request(
+        method="GET",
+        url=url,
+        headers=_get_sp_headers(),
+        context="get list attachments",
+    )
 
     # Get the attachment data
     data = response.json().get("d", {})
@@ -379,23 +253,16 @@ def list_item_attachments_return(
         Helper function to download an attachment.
         """
         relative_url = attachment.get("ServerRelativeUrl")
-        try:
-            attachment_response = requests.get(
-                f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')/$value",
-                headers=_get_sp_headers(),
-                timeout=DEFAULT_TIMEOUT,
-            )
-            attachment_response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            logger.error(
-                f"Error {e.response.status_code}, could not download attachment: {e}"
-            )
-            raise Exception(
-                f"Error {e.response.status_code}, could not download attachment: {e}"
-            ) from e
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error, could not download attachment: {e}")
-            raise Exception(f"Error, could not download attachment: {e}") from e
+        file_url = (
+            f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')/$value"
+        )
+
+        attachment_response = _make_request(
+            method="GET",
+            url=file_url,
+            headers=_get_sp_headers(),
+            context="download list attachment",
+        )
 
         return {
             "name": attachment.get("FileName"),
@@ -403,6 +270,4 @@ def list_item_attachments_return(
             "data": attachment_response.content,
         }
 
-    downloaded_files = [download_attachment(x) for x in attachments]
-
-    return downloaded_files
+    return [download_attachment(x) for x in attachments]
