@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 @Decorators._refresh_graph_token
 def ad_users_return(
     select: str | None = None, filter: str | None = None, expand: str | None = None
-) -> dict:
+) -> list[dict]:
     """
     Gets AD users in a given tenant.
 
@@ -54,15 +54,12 @@ def ad_users_return(
 
     url = "https://graph.microsoft.com/v1.0/users"
 
-    response = _make_request(
-        method="GET",
+    return _get_paginated(
         url=url,
         headers=_get_graph_headers(),
         context="getting AD users",
         params=params,
     )
-
-    return response.json()
 
 
 @Decorators._refresh_graph_token

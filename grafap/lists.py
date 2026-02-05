@@ -31,8 +31,8 @@ def lists_return(site_id: str) -> list[dict]:
 
     :param site_id: The site id to get lists from
     :type site_id: str
-    :return: A dictionary of lists in the site
-    :rtype: dict
+    :return: A list of dictionaries of sharepoint lists
+    :rtype: list[dict]
     """
     _check_env("GRAPH_BASE_URL")
 
@@ -67,20 +67,20 @@ def list_items_return(
     :type filter_query: str | None
     :param select_query: An optional OData select query to limit fields returned
     :type select_query: str | None
-    :return: A dictionary of list items with field data
-    :rtype: dict
+    :return: A list of dictionaries of list item field data
+    :rtype: list[dict]
     """
     _check_env("GRAPH_BASE_URL")
 
     url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists/{list_id}/items"
 
-    params = {"expand": "fields"}
+    params = {"$expand": "fields"}
 
     if select_query:
-        params["expand"] = f"fields($select={select_query})"
+        params["$expand"] = f"fields($select={select_query})"
 
     if filter_query:
-        params["filter"] = filter_query
+        params["$filter"] = filter_query
 
     return _get_paginated(
         url,

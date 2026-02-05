@@ -26,15 +26,6 @@ _basic_retry = retry(
 
 
 @_basic_retry
-def _fetch_page(url, headers, params=None, data=None):
-    """
-    Wrapper around requests.get that retries on RequestException.
-    """
-    response = requests.get(url, headers=headers, params=params, data=data, timeout=30)
-    response.raise_for_status()
-    return response
-
-
 def _make_request(
     method: str, url: str, headers: dict, context: str, **kwargs
 ) -> requests.Response:
@@ -121,6 +112,9 @@ def _get_paginated(
 
         url = data[ODATA_NEXT_LINK]
 
+        # Clear params for subsequent requests that use nextLink URL
+        params = None
+
     return all_results
 
 
@@ -158,10 +152,18 @@ def _get_sp_headers(extra_headers: dict | None = None) -> dict:
     return headers
 
 
-def _check_env(key: str, default: str | None = None):
+def _check_env(key: str, default: str | None = None) -> str:
     """
     Checks if a given env var has been set. Raises an error if it hasn't been
     with instructions to read the README..md for setup instructions.
+
+    :param key: The environment variable key to check
+    :type key: str
+    :param default: Optional default value if the env var is not set
+    :type default: str | None
+    :return: The value of the environment variable
+    :rtype: str
+    :raises OSError: If the environment variable is not set and no default is provided
     """
     value = os.environ.get(key, default)
     if value is None:

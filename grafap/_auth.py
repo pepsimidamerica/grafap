@@ -10,6 +10,7 @@ import os
 import time
 import uuid
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import jwt
 import requests
@@ -173,7 +174,7 @@ class Decorators:
         logger.info("Getting Sharepoint Rest API bearer token...")
 
         # Load the certificate
-        with open(os.environ["SP_CERTIFICATE_PATH"], "rb") as cert_file:
+        with Path(os.environ["SP_CERTIFICATE_PATH"]).open("rb") as cert_file:
             cert_data = cert_file.read()
         pfx = pkcs12.load_key_and_certificates(
             cert_data, str.encode(os.environ["SP_CERTIFICATE_PASSWORD"])
