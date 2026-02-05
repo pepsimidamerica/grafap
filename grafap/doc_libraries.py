@@ -5,7 +5,6 @@ Module contains functionality for working with document libraries/drives.
 import logging
 import os
 from typing import Literal
-from urllib.parse import urlparse
 
 from grafap._auth import Decorators
 from grafap._constants import FILE_OPERATION_TIMEOUT
@@ -13,7 +12,6 @@ from grafap._helpers import (
     _check_env,
     _get_graph_headers,
     _get_paginated,
-    _get_sp_headers,
     _make_request,
 )
 
@@ -74,34 +72,44 @@ def doclib_items_return(
     )
 
 
-@Decorators._refresh_sp_token
-def doclib_file_return(file_url: str) -> dict:
+@Decorators._refresh_graph_token
+def doclib_file_return(site_id: str, item_id: str) -> dict:
     """
     Downloads a file from a SharePoint site, likely stored in a document library.
 
-    :param file_url: The direct URL to the file in the SharePoint document library
-    :type file_url: str
+    :param site_id: The SharePoint site ID
+    :type site_id: str
+    :param item_id: The ID of the file to download
+    :type item_id: str
     :return: A dictionary containing the file name, URL, and file content
     """
-    # Parse the file URL to get the site URL and relative URL
-    parsed_url = urlparse(file_url)
-    path_parts = parsed_url.path.split("/")
-    site_path = "/".join(path_parts[:3])  # This will include the site path
-    relative_url = "/".join(path_parts[3:])  # This will include the rest of the path
+    _check_env("GRAPH_BASE_URL")
 
-    site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drive/items/{item_id}/content"
 
     response = _make_request(
         method="GET",
-        url=f"{site_url}/_api/Web/GetFileByUrl(@url)/$value?@url='{file_url}'",
-        headers=_get_sp_headers(),
+        url=url,
+        headers=_get_graph_headers(),
         context="download file",
         timeout=FILE_OPERATION_TIMEOUT,
     )
 
-    file_name = relative_url.split("/")[-1]
+    if response.status_code != 200:
+        logger.error(
+            f"Error {response.status_code}, could not download file: {response.text}"
+        )
+        raise Exception(
+            f"Error {response.status_code}, could not download file: {response.text}"
+        )
 
-    return {"name": file_name, "url": file_url, "data": response.content}
+    return {
+        "file_name": response.headers.get("Content-Disposition", "").split("filename=")[
+            -1
+        ],
+        "file_url": response.url,
+        "file_content": response.content,
+    }
 
 
 @Decorators._refresh_graph_token
