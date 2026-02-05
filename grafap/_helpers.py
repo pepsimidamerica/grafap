@@ -6,7 +6,7 @@ import logging
 import os
 
 import requests
-from grafap.constants import DEFAULT_TIMEOUT, ODATA_NEXT_LINK, ODATA_VALUE
+from grafap._constants import DEFAULT_TIMEOUT, ODATA_NEXT_LINK, ODATA_VALUE
 from tenacity import (
     retry,
     retry_if_exception_type,

@@ -4,17 +4,12 @@ Module contains functionality for working with document libraries/drives.
 
 import logging
 import os
-from pathlib import PurePosixPath
+from typing import Literal
 from urllib.parse import urlparse
 
-import requests
 from grafap._auth import Decorators
-from grafap._constants import (
-    DEFAULT_TIMEOUT,
-    FILE_OPERATION_TIMEOUT,
-)
+from grafap._constants import FILE_OPERATION_TIMEOUT
 from grafap._helpers import (
-    _basic_retry,
     _check_env,
     _get_graph_headers,
     _get_paginated,
@@ -109,177 +104,131 @@ def doclib_file_return(file_url: str) -> dict:
     return {"name": file_name, "url": file_url, "data": response.content}
 
 
-@Decorators._refresh_sp_token
-def doclib_folder_create(site_url: str, folder_path: str) -> dict:
+@Decorators._refresh_graph_token
+def doclib_folder_create(
+    site_id: str,
+    folder_name: str,
+    parent_id: str = "root",
+    conflict_behavior: Literal["rename", "replace", "fail"] = "fail",
+) -> dict:
     """
     Creates a new folder in sharepoint, likely within a document library.
 
-    :param site_url: The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/site)
-    :type site_url: str
-    :param folder_path: Folder path relative to the site, or a server-relative path
-    :type folder_path: str
+    :param site_id: The SharePoint site ID
+    :type site_id: str
+    :param folder_name: The name of the folder to create
+    :type folder_name: str
+    :param parent_id: The ID of the parent folder to create this new folder under ("root" to create the the folder at the top-level of the document library)
+    :type parent_id: str
+    :param conflict_behavior: Behavior if a folder with the same name exists
+                              ("rename", "replace", or "fail")
+    :type conflict_behavior: Literal["rename", "replace", "fail"]
     :return: Details about the created folder
     :rtype: dict
     """
-    parsed_url = urlparse(site_url)
-    site_path = PurePosixPath(parsed_url.path)
-    normalized_folder_path = PurePosixPath(str(folder_path).replace("\\", "/"))
+    _check_env("GRAPH_BASE_URL")
 
-    if str(normalized_folder_path).startswith("/"):
-        server_relative_path = normalized_folder_path
-    else:
-        server_relative_path = site_path / normalized_folder_path
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drive/items/{parent_id}/children"
+    response = _make_request(
+        method="POST",
+        url=url,
+        headers=_get_graph_headers(),
+        json={
+            "name": folder_name,
+            "folder": {},
+            "@microsoft.graph.conflictBehavior": conflict_behavior,
+        },
+        context="create folder",
+        timeout=FILE_OPERATION_TIMEOUT,
+    )
 
-    server_relative_path = PurePosixPath("/" + str(server_relative_path).lstrip("/"))
-
-    @_basic_retry
-    def create_folder(folder_server_relative_url: str) -> None:
-        response = requests.post(
-            f"{site_url}/_api/web/folders",
-            headers=_get_sp_headers({"X-RequestDigest": ""}),  # TODO Get digest value
-            json={
-                "__metadata": {"type": "SP.Folder"},
-                "ServerRelativeUrl": folder_server_relative_url,
-            },
-            timeout=FILE_OPERATION_TIMEOUT,
+    if response.status_code != 201:
+        logger.error(
+            f"Error {response.status_code}, could not create folder: {response.text}"
+        )
+        raise Exception(
+            f"Error {response.status_code}, could not create folder: {response.text}"
         )
 
-        if response.status_code in {200, 201}:
-            return
-
-        if response.status_code in {409, 500}:
-            response_text = response.text.lower()
-            if "already exists" in response_text or "already exist" in response_text:
-                return
-
-        response.raise_for_status()
-
-    path_parts = [part for part in server_relative_path.parts if part not in {"/", ""}]
-    current_path = PurePosixPath("/")
-    for part in path_parts:
-        current_path = current_path / part
-        try:
-            create_folder(str(current_path))
-        except requests.exceptions.HTTPError as e:
-            logger.error(
-                f"Error {e.response.status_code}, could not create folder: {e}"
-            )
-            raise Exception(
-                f"Error {e.response.status_code}, could not create folder: {e}"
-            ) from e
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error, could not create folder: {e}")
-            raise Exception(f"Error, could not create folder: {e}") from e
-
-    return {
-        "ServerRelativeUrl": str(server_relative_path),
-        "Name": server_relative_path.name,
-        "FullPath": str(server_relative_path),
-    }
+    return response.json()
 
 
-@Decorators._refresh_sp_token
+@Decorators._refresh_graph_token
 def doclib_file_create(
-    site_url: str,
-    folder_path: str,
+    site_id: str,
     file_name: str,
     file_content: bytes,
-    overwrite: bool = True,
+    content_type: str,
+    parent_id: str = "root",
 ) -> dict:
     """
     Uploads a file to sharepoint, likely to a document library.
 
-    :param site_url: The SharePoint site URL (e.g. https://tenant.sharepoint.com/sites/site)
-    :type site_url: str
-    :param folder_path: Folder path relative to the site, or a server-relative path
-    :type folder_path: str
-    :param file_name: File name to upload
+    :param site_id: The SharePoint site ID
+    :type site_id: str
+    :param file_name: The name of the file to upload
     :type file_name: str
-    :param file_content: File content as bytes
+    :param file_content: The content of the file to upload
     :type file_content: bytes
-    :param overwrite: If True, overwrite existing file
-    :type overwrite: bool
+    :param content_type: The MIME type of the file
+    :type content_type: str
+    :param parent_id: The ID of the parent folder to upload the file to ("root" to upload the file to the top-level of the document library)
+    :type parent_id: str
     :return: Details about the uploaded file
     :rtype: dict
     """
-    parsed_url = urlparse(site_url)
-    site_path = PurePosixPath(parsed_url.path)
-    normalized_folder_path = PurePosixPath(str(folder_path).replace("\\", "/"))
+    _check_env("GRAPH_BASE_URL")
 
-    if str(normalized_folder_path).startswith("/"):
-        server_relative_path = normalized_folder_path
-    else:
-        server_relative_path = site_path / normalized_folder_path
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drive/items/{parent_id}:/{file_name}:/content"
 
-    server_relative_path = PurePosixPath("/" + str(server_relative_path).lstrip("/"))
-
-    upload_url = (
-        f"{site_url}/_api/web/GetFolderByServerRelativeUrl('{server_relative_path}')"
-        f"/Files/add(url='{file_name}',overwrite={str(overwrite).lower()})"
+    response = _make_request(
+        method="PUT",
+        url=url,
+        headers=_get_graph_headers({"Content-Type": content_type}),
+        data=file_content,
+        context="upload file",
+        timeout=FILE_OPERATION_TIMEOUT,
     )
 
-    try:
-        response = requests.post(
-            upload_url,
-            headers=_get_sp_headers(
-                {"Content-Type": "application/octet-stream", "X-RequestDigest": ""}
-            ),  # TODO Get digest value
-            data=file_content,
-            timeout=FILE_OPERATION_TIMEOUT,
+    if response.status_code != 201:
+        logger.error(
+            f"Error {response.status_code}, could not upload file: {response.text}"
         )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"Error {e.response.status_code}, could not upload file: {e}")
         raise Exception(
-            f"Error {e.response.status_code}, could not upload file: {e}"
-        ) from e
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not upload file: {e}")
-        raise Exception(f"Error, could not upload file: {e}") from e
+            f"Error {response.status_code}, could not upload file: {response.text}"
+        )
 
-    data = response.json().get("d", {})
-    return {
-        "name": data.get("Name", file_name),
-        "ServerRelativeUrl": data.get(
-            "ServerRelativeUrl", f"{server_relative_path}/{file_name}"
-        ),
-        "TimeCreated": data.get("TimeCreated"),
-        "TimeLastModified": data.get("TimeLastModified"),
-        "Length": data.get("Length"),
-    }
+    return response.json()
 
 
-@Decorators._refresh_sp_token
-def doclib_file_delete(file_url: str) -> None:
+@Decorators._refresh_graph_token
+def doclib_file_delete(site_id: str, item_id: str) -> None:
     """
     Deletes a file from a SharePoint site, likley stored in a document library.
 
-    :param file_url: The direct URL to the file in the SharePoint document library
-    :type file_url: str
+    :param site_id: The SharePoint site ID
+    :type site_id: str
+    :param item_id: The ID of the file to delete
+    :type item_id: str
     :return: None
     :rtype: None
     """
-    # Parse the file URL to get the site URL and relative URL
-    parsed_url = urlparse(file_url)
-    path_parts = parsed_url.path.split("/")
-    site_path = "/".join(path_parts[:3])
-    relative_url = "/".join(path_parts[3:])  # This will include the rest of the path
+    _check_env("GRAPH_BASE_URL")
 
-    site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
+    url = f"{os.environ['GRAPH_BASE_URL']}{site_id}/drive/items/{item_id}"
 
-    try:
-        response = requests.delete(
-            # f"{site_url}/_api/Web/GetFileByServerRelativeUrl('{relative_url}')",
-            f"{site_url}/_api/Web/GetFileByUrl(@url)?@url='{file_url}'",
-            headers=_get_sp_headers({"X-RequestDigest": ""}),  # TODO Get digest value
-            timeout=DEFAULT_TIMEOUT,
+    response = _make_request(
+        method="DELETE",
+        url=url,
+        headers=_get_graph_headers(),
+        context="delete file",
+        timeout=FILE_OPERATION_TIMEOUT,
+    )
+
+    if response.status_code != 204:
+        logger.error(
+            f"Error {response.status_code}, could not delete file: {response.text}"
         )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"Error {e.response.status_code}, could not delete file: {e}")
         raise Exception(
-            f"Error {e.response.status_code}, could not delete file: {e}"
-        ) from e
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not delete file: {e}")
-        raise Exception(f"Error, could not delete file: {e}") from e
+            f"Error {response.status_code}, could not delete file: {response.text}"
+        )

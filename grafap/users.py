@@ -7,12 +7,9 @@ sharepoint list.
 import logging
 import os
 
-import requests
 from grafap._auth import Decorators
 from grafap._constants import (
-    DEFAULT_TIMEOUT,
     GRAPH_PREFER_OPTIONAL,
-    ODATA_NEXT_LINK,
     ODATA_VALUE,
     USER_INFO_LIST_NAME,
 )
@@ -86,13 +83,11 @@ def sp_users_info_return(site_id: str) -> list[dict]:
         f"{os.environ['GRAPH_BASE_URL']}{site_id}/lists('{USER_INFO_LIST_NAME}')/items"
     )
 
-    result = _get_paginated(
+    return _get_paginated(
         url,
         headers=_get_graph_headers(),
         params={"expand": "fields(select=Id,Email)"},
     )
-
-    return result
 
 
 @_basic_retry
@@ -123,26 +118,12 @@ def sp_user_info_return(
     elif email:
         url += "?$filter=fields/UserName eq '" + email + "'"
 
-    try:
-        response = requests.get(
-            url,
-            headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
-            timeout=DEFAULT_TIMEOUT,
-        )
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(
-            f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-        )
-        raise Exception(
-            f"Error {e.response.status_code}, could not get sharepoint list data: {e}"
-        ) from e
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-        logger.error(f"Error, could not connect to sharepoint list data: {e}")
-        raise
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not get sharepoint list data: {e}")
-        raise Exception(f"Error, could not get sharepoint list data: {e}") from e
+    response = _make_request(
+        method="GET",
+        url=url,
+        headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
+        context="getting sharepoint list user data",
+    )
 
     if ODATA_VALUE in response.json():
         if len(response.json()[ODATA_VALUE]) == 0:
@@ -167,24 +148,13 @@ def sp_user_ensure(site_url: str, logon_name: str) -> dict:
     # Construct the URL for the ensure user endpoint
     url = f"{site_url}/_api/web/ensureuser"
 
-    try:
-        response = requests.post(
-            url,
-            headers=_get_sp_headers(),
-            json={"logonName": logon_name},
-            timeout=DEFAULT_TIMEOUT,
-        )
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"Error {e.response.status_code}, could not ensure user: {e}")
-        raise Exception(
-            f"Error {e.response.status_code}, could not ensure user: {e}"
-        ) from e
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-        logger.error(f"Error, could not connect to ensure user: {e}")
-        raise
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error, could not ensure user: {e}")
-        raise Exception(f"Error, could not ensure user: {e}") from e
+    response = _make_request(
+        method="POST",
+        url=url,
+        headers=_get_sp_headers(),
+        context="ensuring sharepoint user",
+        json={"logonName": logon_name},
+    )
 
     # Check for errors in the response
     if response.status_code != 200:
@@ -195,5 +165,4 @@ def sp_user_ensure(site_url: str, logon_name: str) -> dict:
             f"Error {response.status_code}, could not ensure user: {response.content}"
         )
 
-    # Return the JSON response
     return response.json()

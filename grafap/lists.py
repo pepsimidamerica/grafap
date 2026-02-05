@@ -82,14 +82,12 @@ def list_items_return(
     if filter_query:
         params["filter"] = filter_query
 
-    result = _get_paginated(
+    return _get_paginated(
         url,
         headers=_get_graph_headers({"Prefer": GRAPH_PREFER_OPTIONAL}),
         context="get sharepoint list items",
         params=params,
     )
-
-    return result
 
 
 @Decorators._refresh_graph_token
