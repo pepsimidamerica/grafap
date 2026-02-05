@@ -96,17 +96,15 @@ class Decorators:
 
         logger.info("Getting Microsoft Graph bearer token...")
 
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-
         try:
             response = requests.post(
                 os.environ["GRAPH_LOGIN_BASE_URL"]
                 + os.environ["GRAPH_TENANT_ID"]
                 + "/oauth2/v2.0/token",
-                headers=headers,
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
                 data={
                     "client_id": os.environ["GRAPH_CLIENT_ID"],
                     "client_secret": os.environ["GRAPH_CLIENT_SECRET"],
