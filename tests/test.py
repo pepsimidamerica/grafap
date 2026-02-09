@@ -1,7 +1,10 @@
+"""
+Test file for grafap.
+"""
+
 import os
 import sys
-from datetime import datetime, timedelta
-from pprint import pprint
+from io import BytesIO
 
 from dotenv import load_dotenv
 
@@ -10,16 +13,17 @@ load_dotenv()
 
 sys.path.insert(0, "")
 
-from grafap import doclib_items_return, doclibs_return
+from grafap import doclib_file_create
 
-res = doclibs_return(site_id=os.environ["SITE_ID_MAIN"])
+# Create temp test.txt bytesio object for testing file upload
+test_txt_file = BytesIO(b"This is a test file created by the grafap library.")
 
-doclib_id = res[0]["id"]
-
-res2 = doclib_items_return(
-    site_id=os.environ["SITE_ID_MAIN"],
-    doclib_id=doclib_id,
-    subfolder_id=os.environ["SUBFOLDER_ID"],
+res = doclib_file_create(
+    site_id=os.environ["SITE_ID_TESTING"],
+    parent_id=os.environ["FOLDER_ID_TESTING"],
+    file_name="test_file2.txt",
+    file_content=test_txt_file.getvalue(),
+    content_type="text/plain",
 )
 
 pass
