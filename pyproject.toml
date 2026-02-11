@@ -23,7 +23,7 @@ license = { file = "LICENSE" }
 Homepage = "https://github.com/pepsimidamerica/grafap"
 
 [build-system]
-requires = ["uv_build>=0.7.19,<0.10"]
+requires = ["uv_build>=0.7.19,<0.11"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
