@@ -11,8 +11,8 @@ SP_ODATA_VERBOSE = "application/json;odata=verbose;charset=utf-8"
 GRAPH_PREFER_OPTIONAL = "HonorNonIndexedQueriesWarningMayFailRandomly"
 
 # Timeouts (in seconds)
-DEFAULT_TIMEOUT = 30
-FILE_OPERATION_TIMEOUT = 60  # More time for file uploads/downloads
+DEFAULT_TIMEOUT = 60
+FILE_OPERATION_TIMEOUT = 120  # More time for file uploads/downloads
 
 # Default sharepoint list names
 USER_INFO_LIST_NAME = "User Information List"
