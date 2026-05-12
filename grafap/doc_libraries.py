@@ -241,7 +241,7 @@ def doclib_file_create(
         timeout=FILE_OPERATION_TIMEOUT,
     )
 
-    if response.status_code != 201:
+    if response.status_code not in [200, 201]:
         logger.error(
             f"Error {response.status_code}, could not upload file: {response.text}"
         )
