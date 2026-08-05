@@ -1,20 +1,19 @@
 [project]
 name = "grafap"
-version = "1.2"
+version = "2.0"
 description = "Python package that acts as a wrapper for the Microsoft Graph API."
 readme = "README.md"
 authors = [{ name = "Jordan Maynor", email = "jmaynor@pepsimidamerica.com" }]
 requires-python = ">=3.11"
 dependencies = [
     "cryptography>=46.0.4",
+    "httpx2>=2.9.1",
     "pyjwt>=2.11.0",
     "pyopenssl>=25.1.0",
-    "requests>=2.32.4",
     "tenacity>=9.1.2",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: The Unlicense (Unlicense)",
     "Operating System :: OS Independent",
 ]
 license = { file = "LICENSE" }
@@ -23,7 +22,7 @@ license = { file = "LICENSE" }
 Homepage = "https://github.com/pepsimidamerica/grafap"
 
 [build-system]
-requires = ["uv_build>=0.7.19,<0.11"]
+requires = ["uv_build>=0.7.19,<0.12"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
@@ -31,4 +30,13 @@ module-name = "grafap"
 module-root = ""
 
 [dependency-groups]
-dev = ["python-dotenv>=1.1.0"]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "python-dotenv>=1.1.0",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: tests that require real Graph API credentials and network access",
+]

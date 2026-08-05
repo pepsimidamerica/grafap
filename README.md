@@ -1,21 +1,41 @@
 # grafap
 
-grafap (graph-wrap) is a Python package for interacting with the Microsoft Graph API, primarily sharepoint lists. Creating new items, querying lists, etc.
-
-## Installation
-
-`pip install grafap`
+grafap is a Python package for interacting with the Microsoft Graph API and the Sharepoint REST API. Primarily common functions with regards to sharepoint lists. Creating new items, querying lists, etc.
 
 ## Usage
 
-Several environment variables are required for grafap to function. Most of the endpoints in grafap are just using the standard Microsoft Graph API which only requires a client ID and secret.
+```python
+from grafap import GrafapClient
 
-The Sharepoint REST API, however requires using a client certificate. The Sharepoint REST API is currently only used for the following functions. If you're not using them, then you don't need the certificate or the other env vars in the Sharepoint REST API table. Only the vars in the Graph table.
+client = GrafapClient(
+    tenant_id="...",
+    client_id="...",
+    client_secret="...",
+)
+
+# Or just use convenience func to pull from expected env vars
+# if already loaded
+client = GrafapClient.from_env()
+
+# async
+sites = await client.sites_return()
+
+# sync
+sites = client.sync.sites_return()
+```
+
+Can run untit tests with `uv run pytest tests -v` when in the project root. Integration tests require real Graph API credentials and network access, so they are marked with `@pytest.mark.integration` and can be run separately with `uv run pytest tests -v -m integration`.
+
+## Configuration
+
+Several parameters are required for grafap client instantiation. Most of the endpoints in grafap are just using the standard Microsoft Graph API which only requires a client ID and secret.
+
+The Sharepoint REST API, however requires using a client certificate. The Sharepoint REST API is currently only used for the following functions. If you're not using them, then you don't need the certificate or the other vars in the Sharepoint REST API table.
 
 - "ensuring" a user in a sharepoint site.
 - downloading an attachment from a sharepoint list item
 
-### MS Graph Env Vars
+### MS Graph Vars
 
 | Env Variable | Description |
 | ------------ | ----------- |
@@ -27,7 +47,7 @@ The Sharepoint REST API, however requires using a client certificate. The Sharep
 | GRAPH_GRANT_TYPE | Should be 'client_credentials' |
 | GRAPH_SCOPES | Should typically be <https://graph.microsoft.com/.default> unless using more fine-grained permissions. |
 
-### Sharepoint Rest API Env Vars
+### Sharepoint Rest API Vars
 
 | Env Variable | Description |
 | ------------ | ----------- |
@@ -37,9 +57,5 @@ The Sharepoint REST API, however requires using a client certificate. The Sharep
 | SP_TENANT_ID | Tenant ID from app registration created in Azure. |
 | SP_CLIENT_ID | Client ID from app registration created in Azure. |
 | SP_GRANT_TYPE | client_credentials |
-| SP_CERTIFICATE_PATH | Path to `.pfx` file |
-| SP_CERTIFICATE_PASSWORD | Password for the `.pfx` file. |
-
-## Examples
-
-A few examples of using grafap functions have been added in `tests/test.py`
+| SP_CERTIFICATE_PATH | Path to .pfx file |
+| SP_CERTIFICATE_PASSWORD | Password for the .pfx file. |
