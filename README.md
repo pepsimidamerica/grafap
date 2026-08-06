@@ -30,7 +30,7 @@ Can run untit tests with `uv run pytest tests -v` when in the project root. Inte
 
 Several parameters are required for grafap client instantiation. Most of the endpoints in grafap are just using the standard Microsoft Graph API which only requires a client ID and secret.
 
-The Sharepoint REST API, however requires using a client certificate. The Sharepoint REST API is currently only used for the following functions. If you're not using them, then you don't need the certificate or the other vars in the Sharepoint REST API table.
+The Sharepoint REST API, however requires using a client certificate. The Sharepoint REST API is currently only used for the following functions (that don't have an equivalent in the Microsoft Graph API). If you're not using them, then you don't need the certificate or the other vars in the Sharepoint REST API table.
 
 - "ensuring" a user in a sharepoint site.
 - downloading an attachment from a sharepoint list item

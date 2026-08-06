@@ -95,6 +95,10 @@ class _SyncProxy:
 
         @functools.wraps(attr)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+            # asyncio.run() creates event loop each call, so the
+            # cached httpx.AsyncClient must be
+            # discarded to avoid "Event loop is closed" errors.
+            self._client._http_client = None
             return asyncio.run(attr(*args, **kwargs))
 
         # Cache on the instance so the functools wrapper is only created once
@@ -206,7 +210,10 @@ class GrafapClient:
         Close the underlying HTTP client and release resources.
         """
         if self._http_client is not None:
-            await self._http_client.aclose()
+            try:
+                await self._http_client.aclose()
+            except RuntimeError:
+                logger.debug("HTTP client already closed; discarding reference.")
             self._http_client = None
 
     @classmethod
@@ -546,12 +553,8 @@ class GrafapClient:
         select_query: str | None = None,
     ) -> list[dict]:
         """
-        Get field data from a SharePoint list.
-
-        .. note::
-
-            If using *filter_query*, the filtered column must be indexed in
-            SharePoint list settings or the request will fail.
+        Get field data from a SharePoint list. If using *filter_query*, the filtered
+        column must be indexed in SharePoint list settings or the request will fail.
 
         :param site_id: The site ID.
         :type site_id: str
