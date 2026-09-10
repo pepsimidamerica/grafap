@@ -21,20 +21,29 @@ async def test_get_file():
 
 
 if __name__ == "__main__":
-    import asyncio
+    # import asyncio
 
     # Testing running async and sync methods
-    async_file = asyncio.run(test_get_file())
-    sync_file = client.sync.doclib_file_via_url_return(os.environ["TEST_FILE_URL"])
-    sites = client.sync.sites_return()
+    # async_file = asyncio.run(test_get_file())
+    # sync_file = client.sync.doclib_file_via_url_return(os.environ["TEST_FILE_URL"])
+    # sites = client.sync.sites_return()
 
-    # Save the files
-    with Path("async_output.pdf").open("wb") as f:
-        f.write(async_file["data"])
-    with Path("sync_output.pdf").open("wb") as f:
-        f.write(sync_file["data"])
-    with Path("sites.json").open("w") as f:
-        f.write(json.dumps(sites))
+    # # Save the files
+    # with Path("async_output.pdf").open("wb") as f:
+    #     f.write(async_file["data"])
+    # with Path("sync_output.pdf").open("wb") as f:
+    #     f.write(sync_file["data"])
+    # with Path("sites.json").open("w") as f:
+    #     f.write(json.dumps(sites))
 
-    # Close the client
-    asyncio.run(client.close())
+    # # Close the client
+    # asyncio.run(client.close())
+
+    res = client.sync.list_item_attachments_return(
+        site_url="https://pepsimidamerica.sharepoint.com/sites/PepsiMidAmericaInternalAccess",
+        list_name="Form 279",
+        item_id=7772,
+        download=True,
+    )
+
+    pass

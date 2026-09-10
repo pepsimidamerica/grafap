@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import httpx2 as httpx
 import jwt
@@ -697,8 +697,12 @@ class GrafapClient:
         :return: List of attachment info dicts (or dicts with data if downloading).
         :rtype: list[dict]
         """
+        # OData string literals in SharePoint REST URLs escape single
+        # quotes by doubling them (e.g. "Nana's" -> "Nana''s").
+        escaped_list = str(list_name).replace("'", "''")
+
         url = (
-            f"{site_url}/_api/lists/getByTitle('{list_name}')"
+            f"{site_url}/_api/lists/getByTitle('{escaped_list}')"
             f"/items({item_id})?$select=AttachmentFiles,Title"
             f"&$expand=AttachmentFiles"
         )
@@ -722,25 +726,28 @@ class GrafapClient:
                 for x in attachments
             ]
 
-        # Download each attachment sequentially
+        # Download each attachment using the dedicated attachment endpoint
+        # (avoids GetFileByServerRelativeUrl which chokes on apostrophes and
+        # other special characters embedded in file paths).
         results: list[dict] = []
         for attachment in attachments:
-            relative_url = attachment.get("ServerRelativeUrl")
-            file_url = (
-                f"{site_url}/_api/Web/"
-                f"GetFileByServerRelativeUrl('{relative_url}')/$value"
+            file_name = attachment.get("FileName")
+            escaped_name = str(file_name).replace("'", "''")
+            download_url = (
+                f"{site_url}/_api/web/lists/getbytitle('{escaped_list}')"
+                f"/items({item_id})/AttachmentFiles('{escaped_name}')/$value"
             )
 
             attachment_response = await self._request(
                 method="GET",
-                url=file_url,
+                url=download_url,
                 token_type="sp",
                 context="download list attachment",
             )
 
             results.append(
                 {
-                    "name": attachment.get("FileName"),
+                    "name": file_name,
                     "url": attachment.get("ServerRelativeUrl"),
                     "data": attachment_response.content,
                 }
@@ -973,7 +980,11 @@ class GrafapClient:
         relative_url = "/".join(path_parts[3:])
 
         site_url = f"{parsed_url.scheme}://{parsed_url.netloc}{site_path}"
-        request_url = f"{site_url}/_api/Web/GetFileByUrl(@url)/$value?@url='{file_url}'"
+        # OData string literals escape single quotes by doubling them.
+        escaped_file_url = file_url.replace("'", "''")
+        request_url = (
+            f"{site_url}/_api/Web/GetFileByUrl(@url)/$value?@url='{escaped_file_url}'"
+        )
 
         response = await self._request(
             method="GET",
