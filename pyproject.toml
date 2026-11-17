@@ -4,7 +4,7 @@ version = "2.1"
 description = "Python package that acts as a wrapper for the Microsoft Graph API."
 readme = "README.md"
 authors = [{ name = "Jordan Maynor", email = "jmaynor@pepsimidamerica.com" }]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "cryptography>=46.0.4",
     "httpx2>=2.9.1",
